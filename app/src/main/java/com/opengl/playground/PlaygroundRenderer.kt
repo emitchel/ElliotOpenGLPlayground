@@ -16,7 +16,11 @@ import android.opengl.GLES20.glUseProgram
 import android.opengl.GLES20.glVertexAttribPointer
 import android.opengl.GLES20.glViewport
 import android.opengl.GLSurfaceView.Renderer
-import android.opengl.Matrix.orthoM
+import android.opengl.Matrix.multiplyMM
+import android.opengl.Matrix.rotateM
+import android.opengl.Matrix.setIdentityM
+import android.opengl.Matrix.translateM
+import com.opengl.playground.util.MatrixHelper
 import com.opengl.playground.util.ShaderHelper
 import com.opengl.playground.util.TextResourceReader
 import com.opengl.playground.util.log
@@ -49,6 +53,7 @@ class PlaygroundRenderer(val context: Context) : Renderer {
     private var aPositionLocation: Int = 0
     private var uMatrixLocation: Int = 0
 
+    private var modelMatrix = FloatArray(16)
     private var projectionMatrix = FloatArray(16)
 
     private val tableVertices = floatArrayOf(
@@ -136,22 +141,19 @@ class PlaygroundRenderer(val context: Context) : Renderer {
     override fun onSurfaceChanged(p0: GL10?, width: Int, height: Int) {
         log("onSurfaceChanged, width: $width, height: $height")
         glViewport(0, 0, width, height)
-        val aspectRatio = if (width > height) {
-            width.toFloat() / height.toFloat()
-        } else {
-            height.toFloat() / width.toFloat()
-        }
-
-        log("aspectRatio: $aspectRatio")
-
-        // redfine our coordinate space so it's not -1,1 everywhere, it's -aspectRatio, aspectRatio
-        if (width > height) {
-            // landscape
-            orthoM(projectionMatrix, 0, -aspectRatio, aspectRatio, -1f, 1f, -1f, 1f)
-        } else {
-            // portrait
-            orthoM(projectionMatrix, 0, -1f, 1f, -aspectRatio, aspectRatio, -1f, 1f)
-        }
+        MatrixHelper.perspectiveM(
+            projectionMatrix,
+            45f,
+            width.toFloat() / height.toFloat(),
+            1f,
+            10f
+        )
+        setIdentityM(modelMatrix, 0)
+        translateM(modelMatrix, 0, 0f, 0f, -3f)
+        rotateM(modelMatrix, 0, -60f, 1f, 0f, 0f)
+        val temp = FloatArray(16)
+        multiplyMM(temp, 0, projectionMatrix, 0, modelMatrix, 0)
+        System.arraycopy(temp, 0, projectionMatrix, 0, temp.size)
     }
 
     override fun onDrawFrame(p0: GL10?) {
