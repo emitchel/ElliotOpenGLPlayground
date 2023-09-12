@@ -20,7 +20,7 @@ class MainActivity : AppCompatActivity() {
         glSurfaceView.setEGLContextClientVersion(2)
 
         //assign our renderer
-        glSurfaceView.setRenderer(PlaygroundRenderer())
+        glSurfaceView.setRenderer(PlaygroundRenderer(this))
 
         rendererSet = true
     }

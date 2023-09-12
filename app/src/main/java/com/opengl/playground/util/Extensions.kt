@@ -1,4 +1,4 @@
-package com.opengl.playground
+package com.opengl.playground.util
 
 import android.util.Log
 
