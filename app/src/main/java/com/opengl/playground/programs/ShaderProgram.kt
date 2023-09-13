@@ -41,6 +41,7 @@ abstract class ShaderProgram protected constructor(
         // Uniform constants
         const val U_MATRIX = "u_Matrix"
         const val U_TEXTURE_UNIT = "u_TextureUnit"
+        const val U_COLOR = "u_Color"
 
         // Attribute constants
         const val A_POSITION = "a_Position"
