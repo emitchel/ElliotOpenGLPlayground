@@ -2,186 +2,79 @@ package com.opengl.playground
 
 import android.content.Context
 import android.opengl.GLES20.GL_COLOR_BUFFER_BIT
-import android.opengl.GLES20.GL_POINTS
-import android.opengl.GLES20.GL_TRIANGLE_FAN
 import android.opengl.GLES20.glClear
 import android.opengl.GLES20.glClearColor
-import android.opengl.GLES20.glDrawArrays
-import android.opengl.GLES20.glEnableVertexAttribArray
-import android.opengl.GLES20.glGetAttribLocation
-import android.opengl.GLES20.glGetUniformLocation
-import android.opengl.GLES20.glLineWidth
-import android.opengl.GLES20.glUniformMatrix4fv
-import android.opengl.GLES20.glUseProgram
-import android.opengl.GLES20.glVertexAttribPointer
 import android.opengl.GLES20.glViewport
 import android.opengl.GLSurfaceView.Renderer
 import android.opengl.Matrix.multiplyMM
 import android.opengl.Matrix.rotateM
 import android.opengl.Matrix.setIdentityM
 import android.opengl.Matrix.translateM
-import com.opengl.playground.util.MatrixHelper
-import com.opengl.playground.util.ShaderHelper
-import com.opengl.playground.util.TextResourceReader
-import com.opengl.playground.util.log
-import java.nio.ByteBuffer
-import java.nio.ByteOrder
-import java.nio.FloatBuffer
+import com.opengl.playground.objects.Mallet
+import com.opengl.playground.objects.Table
+import com.opengl.playground.programs.ColorShaderProgram
+import com.opengl.playground.programs.TextureShaderProgram
+import com.opengl.playground.util.MatrixHelper.perspectiveM
+import com.opengl.playground.util.TextureHelper.loadTexture
 import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
 
 class PlaygroundRenderer(val context: Context) : Renderer {
     companion object {
         // x,y coordinate components
-        private const val BYTES_PER_FLOAT = 4
-
-        // 2 position components
-        private const val POSITION_COMPONENT_COUNT = 4
-
-        // 3 color components
-        private const val COLOR_COMPONENT_COUNT = 3
-
-        private const val A_POSITION = "a_Position"
-        private const val A_COLOR = "a_Color"
-        private const val U_MATRIX = "u_Matrix"
-        private const val STRIDE =
-            (POSITION_COMPONENT_COUNT + COLOR_COMPONENT_COUNT) * BYTES_PER_FLOAT
+        const val BYTES_PER_FLOAT = 4
     }
 
-    private var program: Int = 0
-    private var aColorLocation: Int = 0
-    private var aPositionLocation: Int = 0
-    private var uMatrixLocation: Int = 0
+    private val projectionMatrix = FloatArray(16)
+    private val modelMatrix = FloatArray(16)
 
-    private var modelMatrix = FloatArray(16)
-    private var projectionMatrix = FloatArray(16)
+    private lateinit var table: Table
+    private lateinit var mallet: Mallet
 
-    private val tableVertices = floatArrayOf(
-        // Order of coordinates: X, Y, Z, W, R, G, B
+    private lateinit var textureProgram: TextureShaderProgram
+    private lateinit var colorProgram: ColorShaderProgram
 
-        // Triangle Fan
-           0f,    0f, 0f, 1.5f,   1f,   1f,   1f,
-        -0.5f, -0.8f, 0f,   1f, 0.7f, 0.7f, 0.7f, // left bottom
-         0.5f, -0.8f, 0f,   1f, 0.7f, 0.7f, 0.7f, // right bottom
-         0.5f,  0.8f, 0f,   2f, 0.7f, 0.7f, 0.7f, // right top
-        -0.5f,  0.8f, 0f,   2f, 0.7f, 0.7f, 0.7f, // left top
-        -0.5f, -0.8f, 0f,   1f, 0.7f, 0.7f, 0.7f, // left bottom
+    private var texture = 0
 
-        // Line 1
-        -0.5f, 0f, 0f, 1.5f, 1f, 0f, 0f, // left middle
-         0.5f, 0f, 0f, 1.5f, 1f, 0f, 0f, // right middle
-
-        // Mallets
-        0f, -0.4f, 0f, 1.25f, 0f, 0f, 1f, // blue mallet
-        0f,  0.4f, 0f, 1.75f, 1f, 0f, 0f // red mallet
-    )
-
-    // Used to store data in native memory for use by OpenGL
-    private val vertexData: FloatBuffer =
-        ByteBuffer.allocateDirect(tableVertices.size * BYTES_PER_FLOAT)
-            .order(ByteOrder.nativeOrder())
-            .asFloatBuffer()
-            .put(tableVertices)
-
-    override fun onSurfaceCreated(p0: GL10?, p1: EGLConfig?) {
-        log("onSurfaceCreated")
-        //
+    override fun onSurfaceCreated(glUnused: GL10?, config: EGLConfig?) {
         glClearColor(0.0f, 0.0f, 0.0f, 0.0f)
-        val vertexShaderCode =
-            TextResourceReader.readTextFileFromResource(context, R.raw.simple_vertex_shader)
-        val fragmentShaderCode =
-            TextResourceReader.readTextFileFromResource(context, R.raw.simple_fragment_shader)
-        val vertexShader = ShaderHelper.compileVertexShader(vertexShaderCode)
-        val fragmentShader = ShaderHelper.compileFragmentShader(fragmentShaderCode)
-        program = ShaderHelper.linkProgram(vertexShader, fragmentShader)
-        ShaderHelper.validateProgram(program)
-        glUseProgram(program)
-
-        aColorLocation = glGetAttribLocation(program, A_COLOR).also {
-            log("aColorLocation: $it")
-        }
-
-        aPositionLocation = glGetAttribLocation(program, A_POSITION).also {
-            log("aPositionLocation: $it")
-        }
-
-        uMatrixLocation = glGetUniformLocation(program, U_MATRIX).also {
-            log("uMatrixLocation: $it")
-        }
-
-        // important
-        vertexData.position(0)
-        // tell OpenGL to read in vertex data from vertexData
-        glVertexAttribPointer(
-            aPositionLocation,
-            POSITION_COMPONENT_COUNT,
-            GL10.GL_FLOAT,
-            false,
-            STRIDE,
-            vertexData
-        )
-
-        // must enable the vertex attribute array
-        glEnableVertexAttribArray(aPositionLocation)
-
-        // now updating position to point to the color data
-        vertexData.position(POSITION_COMPONENT_COUNT)
-
-        glVertexAttribPointer(
-            aColorLocation,
-            COLOR_COMPONENT_COUNT,
-            GL10.GL_FLOAT,
-            false,
-            STRIDE,
-            vertexData
-        )
-        glEnableVertexAttribArray(aColorLocation)
+        table = Table()
+        mallet = Mallet()
+        textureProgram = TextureShaderProgram(context)
+        colorProgram = ColorShaderProgram(context)
+        texture = loadTexture(context, R.drawable.air_hockey_surface)
     }
 
-    override fun onSurfaceChanged(p0: GL10?, width: Int, height: Int) {
-        log("onSurfaceChanged, width: $width, height: $height")
+    override fun onSurfaceChanged(glUnused: GL10?, width: Int, height: Int) {
+        // Set the OpenGL viewport to fill the entire surface.
         glViewport(0, 0, width, height)
-        MatrixHelper.perspectiveM(
-            projectionMatrix,
-            45f,
-            width.toFloat() / height.toFloat(),
-            1f,
-            10f
-        )
+        // set perspective aspect ratio so things fall in line
+        perspectiveM(projectionMatrix, 45f, width.toFloat() / height.toFloat(), 1f, 10f)
+        // setup for shifting the table in frame, pushing back into z since perspectiveM makes it go invisible
         setIdentityM(modelMatrix, 0)
-        translateM(modelMatrix, 0, 0f, 0f, -3f)
+        // shift backwards to be visible
+        translateM(modelMatrix, 0, 0f, 0f, -3.5f)
+        // rotate on the x access to see "down" the table as if you were playing
         rotateM(modelMatrix, 0, -60f, 1f, 0f, 0f)
         val temp = FloatArray(16)
         multiplyMM(temp, 0, projectionMatrix, 0, modelMatrix, 0)
         System.arraycopy(temp, 0, projectionMatrix, 0, temp.size)
     }
 
-    override fun onDrawFrame(p0: GL10?) {
-        // log("onDrawFrame")
-        // clears all extra colors, resets to red only onSurfaceCreated
+    override fun onDrawFrame(glUnused: GL10?) {
+        // Clear the rendering surface.
         glClear(GL_COLOR_BUFFER_BIT)
 
-        glUniformMatrix4fv(uMatrixLocation, 1, false, projectionMatrix, 0)
+        // Draw the table.
+        textureProgram.useProgram()
+        textureProgram.setUniforms(projectionMatrix, texture)
+        table.bindData(textureProgram)
+        table.draw()
 
-        // draw the WHITE table
-        glDrawArrays(
-            GL_TRIANGLE_FAN, // TRIANGLES
-            0, // start at the beginning of the array
-            6 // draw 6 vertices, which is two triangles in our data
-        )
-
-        // draw the RED dividing line
-        glDrawArrays(
-            GL10.GL_LINES, // LINES
-            6, // start at index 6 (after the first 6 vertices)
-            2 // draw 2 vertices, which is one line in our data
-        )
-        glLineWidth(10.0f)
-
-        // draw the first BLUE mallet
-        glDrawArrays(GL_POINTS, 8, 1)//skip the first vertices, draw the next one
-
-        //draw the second RED MALLET
-        glDrawArrays(GL_POINTS, 9, 1)//skip the first vertices, draw the next one
+        // Draw the mallets.
+        colorProgram.useProgram()
+        colorProgram.setUniforms(projectionMatrix)
+        mallet.bindData(colorProgram)
+        mallet.draw()
     }
 }
