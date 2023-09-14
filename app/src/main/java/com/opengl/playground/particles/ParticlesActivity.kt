@@ -3,6 +3,9 @@ package com.opengl.playground.particles
 import android.annotation.SuppressLint
 import android.opengl.GLSurfaceView
 import android.os.Bundle
+import android.view.MotionEvent
+import android.view.View
+import android.view.View.OnTouchListener
 import androidx.appcompat.app.AppCompatActivity
 import com.opengl.playground.R
 
@@ -28,6 +31,31 @@ class ParticlesActivity : AppCompatActivity() {
 
         //assign our renderer
         glSurfaceView.setRenderer(renderer)
+
+
+        glSurfaceView.setOnTouchListener(object : OnTouchListener {
+            var previousX = 0f
+            var previousY = 0f
+            override fun onTouch(v: View, event: MotionEvent): Boolean {
+                return run {
+                    if (event.action == MotionEvent.ACTION_DOWN) {
+                        previousX = event.x
+                        previousY = event.y
+                    } else if (event.action == MotionEvent.ACTION_MOVE) {
+                        val deltaX = event.x - previousX
+                        val deltaY = event.y - previousY
+                        previousX = event.x
+                        previousY = event.y
+                        glSurfaceView.queueEvent {
+                            renderer.handleTouchDrag(
+                                deltaX, deltaY
+                            )
+                        }
+                    }
+                    true
+                }
+            }
+        })
         rendererSet = true
     }
 

@@ -5,6 +5,13 @@ import android.graphics.BitmapFactory
 import android.opengl.GLES20.GL_LINEAR
 import android.opengl.GLES20.GL_LINEAR_MIPMAP_LINEAR
 import android.opengl.GLES20.GL_TEXTURE_2D
+import android.opengl.GLES20.GL_TEXTURE_CUBE_MAP
+import android.opengl.GLES20.GL_TEXTURE_CUBE_MAP_NEGATIVE_X
+import android.opengl.GLES20.GL_TEXTURE_CUBE_MAP_NEGATIVE_Y
+import android.opengl.GLES20.GL_TEXTURE_CUBE_MAP_NEGATIVE_Z
+import android.opengl.GLES20.GL_TEXTURE_CUBE_MAP_POSITIVE_X
+import android.opengl.GLES20.GL_TEXTURE_CUBE_MAP_POSITIVE_Y
+import android.opengl.GLES20.GL_TEXTURE_CUBE_MAP_POSITIVE_Z
 import android.opengl.GLES20.GL_TEXTURE_MAG_FILTER
 import android.opengl.GLES20.GL_TEXTURE_MIN_FILTER
 import android.opengl.GLES20.glBindTexture
@@ -16,6 +23,43 @@ import android.opengl.GLUtils.texImage2D
 
 object TextureHelper {
     private const val TAG = "TextureHelper"
+
+    fun loadCubeMap(context: Context, cubeResources: IntArray): Int {
+        val textureObjectIds = IntArray(1)
+        glGenTextures(1, textureObjectIds, 0)
+
+        if (textureObjectIds[0] == 0) {
+            log("Could not generate a new OpenGL texture object.")
+            return 0
+        }
+
+        val options = BitmapFactory.Options()
+        options.inScaled = false
+        val cubeBitmaps = arrayOfNulls<android.graphics.Bitmap>(6)
+        for (i in 0 until 6) {
+            cubeBitmaps[i] =
+                BitmapFactory.decodeResource(context.resources, cubeResources[i], options)
+            if (cubeBitmaps[i] == null) {
+                log("Resource ID ${cubeResources[i]} could not be decoded.")
+                glDeleteTextures(1, textureObjectIds, 0)
+                return 0
+            }
+        }
+        glBindTexture(GL_TEXTURE_CUBE_MAP, textureObjectIds[0])
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
+        texImage2D(GL_TEXTURE_CUBE_MAP_NEGATIVE_X, 0, cubeBitmaps[0], 0)
+        texImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X, 0, cubeBitmaps[1], 0)
+        texImage2D(GL_TEXTURE_CUBE_MAP_NEGATIVE_Y, 0, cubeBitmaps[2], 0)
+        texImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_Y, 0, cubeBitmaps[3], 0)
+        texImage2D(GL_TEXTURE_CUBE_MAP_NEGATIVE_Z, 0, cubeBitmaps[4], 0)
+        texImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_Z, 0, cubeBitmaps[5], 0)
+        glBindTexture(GL_TEXTURE_CUBE_MAP, 0)
+        for (bitmap in cubeBitmaps) {
+            bitmap?.recycle()
+        }
+        return textureObjectIds[0]
+    }
 
     /**
      * Loads a texture from a resource ID, returning the OpenGL ID for that
