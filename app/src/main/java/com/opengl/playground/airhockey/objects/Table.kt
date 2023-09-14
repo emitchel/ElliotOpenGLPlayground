@@ -6,11 +6,11 @@
  * We make no guarantees that this code is fit for any purpose.
  * Visit http://www.pragmaticprogrammer.com/titles/kbogla for more book information.
  */
-package com.opengl.playground.objects
+package com.opengl.playground.airhockey.objects
 
 import android.opengl.GLES20
-import com.opengl.playground.PlaygroundRenderer.Companion.BYTES_PER_FLOAT
-import com.opengl.playground.VertexArray
+import com.opengl.playground.airhockey.AirHockeyRenderer.Companion.BYTES_PER_FLOAT
+import com.opengl.playground.objects.VertexArray
 import com.opengl.playground.programs.TextureShaderProgram
 
 class Table {

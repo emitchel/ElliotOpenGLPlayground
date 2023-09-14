@@ -1,4 +1,6 @@
-package com.opengl.playground.objects
+package com.opengl.playground.particles.objects
+
+import com.opengl.playground.util.DrawCommand
 
 data class GeneratedObjectData(val vertexData: FloatArray, val drawList: List<DrawCommand>) {
     override fun equals(other: Any?): Boolean {

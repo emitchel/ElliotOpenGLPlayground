@@ -1,12 +1,13 @@
-package com.opengl.playground
+package com.opengl.playground.airhockey
 
 import android.annotation.SuppressLint
 import android.opengl.GLSurfaceView
 import android.os.Bundle
 import android.view.MotionEvent
 import androidx.appcompat.app.AppCompatActivity
+import com.opengl.playground.R
 
-class MainActivity : AppCompatActivity() {
+class AirHockeyActivity : AppCompatActivity() {
 
     private val glSurfaceView: GLSurfaceView by lazy {
         findViewById(R.id.glSurfaceView)
@@ -15,7 +16,7 @@ class MainActivity : AppCompatActivity() {
     private var rendererSet = false
 
     private val renderer by lazy {
-        PlaygroundRenderer(this)
+        AirHockeyRenderer(this)
     }
 
     @SuppressLint("ClickableViewAccessibility")

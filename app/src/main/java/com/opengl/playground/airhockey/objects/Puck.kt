@@ -1,8 +1,10 @@
-package com.opengl.playground.objects
+package com.opengl.playground.airhockey.objects
 
-import com.opengl.playground.VertexArray
+import com.opengl.playground.objects.VertexArray
 import com.opengl.playground.programs.ColorShaderProgram
 import com.opengl.playground.util.Cylinder
+import com.opengl.playground.util.DrawCommand
+import com.opengl.playground.util.ObjectBuilder
 import com.opengl.playground.util.Point
 
 class Puck(val radius: Float, val height: Float, numPointsAroundPuck: Int) {

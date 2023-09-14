@@ -1,4 +1,4 @@
-package com.opengl.playground
+package com.opengl.playground.airhockey
 
 import android.content.Context
 import android.opengl.GLES20.GL_COLOR_BUFFER_BIT
@@ -13,9 +13,10 @@ import android.opengl.Matrix.rotateM
 import android.opengl.Matrix.setIdentityM
 import android.opengl.Matrix.setLookAtM
 import android.opengl.Matrix.translateM
-import com.opengl.playground.objects.Mallet
-import com.opengl.playground.objects.Puck
-import com.opengl.playground.objects.Table
+import com.opengl.playground.R
+import com.opengl.playground.airhockey.objects.Mallet
+import com.opengl.playground.airhockey.objects.Puck
+import com.opengl.playground.airhockey.objects.Table
 import com.opengl.playground.programs.ColorShaderProgram
 import com.opengl.playground.programs.TextureShaderProgram
 import com.opengl.playground.util.MatrixHelper.perspectiveM
@@ -31,7 +32,7 @@ import com.opengl.playground.util.vectorBetween
 import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
 
-class PlaygroundRenderer(private val context: Context) : Renderer {
+class AirHockeyRenderer(private val context: Context) : Renderer {
     companion object {
         // x,y coordinate components
         const val BYTES_PER_FLOAT = 4

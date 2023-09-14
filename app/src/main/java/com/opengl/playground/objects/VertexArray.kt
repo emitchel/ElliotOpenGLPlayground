@@ -1,7 +1,7 @@
-package com.opengl.playground
+package com.opengl.playground.objects
 
 import android.opengl.GLES20
-import com.opengl.playground.PlaygroundRenderer.Companion.BYTES_PER_FLOAT
+import com.opengl.playground.airhockey.AirHockeyRenderer.Companion.BYTES_PER_FLOAT
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.FloatBuffer
@@ -17,6 +17,13 @@ class VertexArray(vertexData: FloatArray) {
             .put(vertexData)
     }
 
+    fun updateBuffer(vertexData: FloatArray, start: Int, count: Int) {
+        floatBuffer.position(start)
+        floatBuffer.put(vertexData, start, count)
+        floatBuffer.position(0)
+    }
+
+    // This puts native data into the shader buffer attribute variables
     fun setVertexAttribPointer(
         dataOffset: Int, attributeLocation: Int,
         componentCount: Int, stride: Int

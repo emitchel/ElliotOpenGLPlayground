@@ -1,10 +1,7 @@
-package com.opengl.playground.objects
+package com.opengl.playground.util
 
-import android.R.attr
 import android.opengl.GLES20
-import com.opengl.playground.util.Circle
-import com.opengl.playground.util.Cylinder
-import com.opengl.playground.util.Point
+import com.opengl.playground.particles.objects.GeneratedObjectData
 
 class ObjectBuilder(val sizeInVertices: Int) {
 
