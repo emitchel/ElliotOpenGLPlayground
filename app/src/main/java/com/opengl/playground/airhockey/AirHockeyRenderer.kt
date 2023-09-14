@@ -36,6 +36,8 @@ class AirHockeyRenderer(private val context: Context) : Renderer {
     companion object {
         // x,y coordinate components
         const val BYTES_PER_FLOAT = 4
+
+        const val BYTES_PER_SHORT = 2
     }
 
     // projection of our 2d viewpoint
