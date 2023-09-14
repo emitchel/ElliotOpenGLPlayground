@@ -2,7 +2,7 @@ package com.opengl.playground.util
 
 import kotlin.math.sqrt
 
-data class Point(val x: Float, val y: Float, val z: Float) {
+class Point(val x: Float, val y: Float, val z: Float) {
     fun translateY(distance: Float): Point {
         return Point(x, y + distance, z)
     }
@@ -15,14 +15,6 @@ data class Point(val x: Float, val y: Float, val z: Float) {
         )
     }
 }
-
-data class Circle(val center: Point, val radius: Float) {
-    fun scale(scale: Float): Circle {
-        return Circle(center, radius * scale)
-    }
-}
-
-data class Cylinder(val center: Point, val radius: Float, val height: Float)
 
 class Vector(val x: Float, val y: Float, val z: Float) {
     fun length(): Float {
@@ -52,9 +44,21 @@ class Vector(val x: Float, val y: Float, val z: Float) {
             z * f
         )
     }
+
+    fun normalize(): Vector {
+        return scale(1f / length())
+    }
 }
 
-data class Ray(val point: Point, val vector: Vector)
+class Ray(val point: Point, val vector: Vector)
+
+class Circle(val center: Point, val radius: Float) {
+    fun scale(scale: Float): Circle {
+        return Circle(center, radius * scale)
+    }
+}
+
+class Cylinder(val center: Point, val radius: Float, val height: Float)
 
 class Sphere(val center: Point, val radius: Float)
 
@@ -77,8 +81,7 @@ fun intersects(sphere: Sphere, ray: Ray): Boolean {
 // either point.
 fun distanceBetween(point: Point, ray: Ray): Float {
     val p1ToPoint = vectorBetween(ray.point, point)
-    val p2ToPoint =
-        vectorBetween(ray.point.translate(ray.vector), point)
+    val p2ToPoint = vectorBetween(ray.point.translate(ray.vector), point)
 
     // The length of the cross product gives the area of an imaginary
     // parallelogram having the two vectors as sides. A parallelogram can be
