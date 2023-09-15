@@ -18,7 +18,7 @@ abstract class ShaderProgram protected constructor(
     fragmentShaderResourceId: Int
 ) {
     // Shader program
-    protected val program: Int
+    val program: Int
 
     init {
         // Compile the shaders and link the program.

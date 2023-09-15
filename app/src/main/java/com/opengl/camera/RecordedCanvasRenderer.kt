@@ -2,6 +2,7 @@ package com.opengl.camera
 
 import android.opengl.GLES20
 import android.opengl.GLSurfaceView.Renderer
+import com.opengl.playground.util.log
 import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
 
@@ -21,6 +22,7 @@ class RecordedCanvasRenderer(
     }
 
     override fun onSurfaceChanged(p0: GL10?, width: Int, height: Int) {
+        log("Elliot surface changed $width $height")
         GLES20.glViewport(0, 0, width, height)
         renderers.forEach {
             it.onSurfaceChanged(width, height)
@@ -29,7 +31,7 @@ class RecordedCanvasRenderer(
 
     override fun onDrawFrame(p0: GL10?) {
         // Clear the rendering surface.
-        GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT)
+        GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT or GLES20.GL_DEPTH_BUFFER_BIT)
         renderers.forEach {
             it.onDrawFrame()
         }
