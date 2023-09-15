@@ -12,9 +12,14 @@ import android.content.Context
 import android.opengl.GLES20
 import com.opengl.playground.R
 
-class TextureShaderProgram(context: Context) : ShaderProgram(
-    context, R.raw.texture_vertex_shader,
-    R.raw.texture_fragment_shader
+open class TextureShaderProgram(
+    context: Context,
+    vertexShader: Int = R.raw.texture_vertex_shader,
+    fragmentShader: Int = R.raw.texture_fragment_shader
+) : ShaderProgram(
+    context,
+    vertexShader,
+    fragmentShader
 ) {
     // Uniform locations
     fun getuMatrixLocation(): Int = GLES20.glGetUniformLocation(program, U_MATRIX)

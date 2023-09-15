@@ -2,6 +2,8 @@ package com.opengl.playground.util
 
 import android.content.Context
 import android.graphics.BitmapFactory
+import android.opengl.GLES11Ext
+import android.opengl.GLES20
 import android.opengl.GLES20.GL_LINEAR
 import android.opengl.GLES20.GL_LINEAR_MIPMAP_LINEAR
 import android.opengl.GLES20.GL_TEXTURE_2D
@@ -123,5 +125,25 @@ object TextureHelper {
         // Unbind from the texture.
         glBindTexture(GL_TEXTURE_2D, 0)
         return textureObjectIds[0]
+    }
+    fun createTexture(): Int {
+        val texture = IntArray(1)
+
+        // Generate a new texture ID
+        GLES20.glGenTextures(1, texture, 0)
+        if (texture[0] == 0) {
+            throw RuntimeException("Failed to generate texture ID.")
+        }
+
+        // Bind the texture
+        GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, texture[0])
+
+        // Set texture parameters
+        GLES20.glTexParameterf(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_MIN_FILTER, GLES20.GL_LINEAR.toFloat())
+        GLES20.glTexParameterf(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_MAG_FILTER, GLES20.GL_LINEAR.toFloat())
+        GLES20.glTexParameteri(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_WRAP_S, GLES20.GL_CLAMP_TO_EDGE)
+        GLES20.glTexParameteri(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_WRAP_T, GLES20.GL_CLAMP_TO_EDGE)
+
+        return texture[0]
     }
 }
