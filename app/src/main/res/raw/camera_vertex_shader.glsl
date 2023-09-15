@@ -5,7 +5,7 @@ varying vec2 v_TextureCoordinates;      // This will be passed into the fragment
 
 void main() {
     // Pass through the texture coordinate.
-    v_TextureCoordinates = a_TexCoord;
+    v_TextureCoordinates = a_TextureCoordinates;
 
     // gl_Position is a special variable used to store the final position.
     // Multiply the vertex by the matrix to get the final point in normalized screen coordinates.

@@ -3,6 +3,7 @@ package com.opengl.camera
 import android.annotation.SuppressLint
 import android.opengl.GLSurfaceView
 import android.os.Bundle
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import com.opengl.playground.R
 
@@ -12,15 +13,31 @@ class CameraActivity : AppCompatActivity() {
     //     findViewById(R.id.textureView)
     // }
 
-    private val glSurfaceView: GLSurfaceView by lazy {
-        findViewById(R.id.glSurfaceView)
-    }
+    private var glSurfaceView: GLSurfaceView? = null
 
     private val renderer by lazy {
-        RecordedCanvasRenderer(this, glSurfaceView)
+        RecordedCanvasRenderer {
+            listOf(
+                CameraProgram(this, this, glSurfaceView!!)
+            )
+        }
+    }
+
+    interface CanvasRendererLayer {
+        fun onSurfaceCreated()
+        fun onSurfaceChanged(width: Int, height: Int)
+        fun onDrawFrame()
     }
 
     private var rendererSet = false
+    private val activityResultLauncher =
+        registerForActivityResult(
+            ActivityResultContracts.RequestMultiplePermissions()
+        )
+        { permissions ->
+            //TODO fallback to failed permissions
+            startRendering()
+        }
 
     /**
      * TODO
@@ -37,11 +54,24 @@ class CameraActivity : AppCompatActivity() {
 
         textureViewApproach()
 
-        //request an opengl es 2.0 compatible context
-        glSurfaceView.setEGLContextClientVersion(2)
+        activityResultLauncher.launch(
+            arrayOf(
+                android.Manifest.permission.CAMERA,
+                android.Manifest.permission.RECORD_AUDIO,
+                android.Manifest.permission.WRITE_EXTERNAL_STORAGE
+            )
+        )
+    }
 
+    private fun startRendering() {
+        glSurfaceView = GLSurfaceView(this)
+        //request an opengl es 2.0 compatible context
+        glSurfaceView?.setEGLContextClientVersion(2)
+        // TODO this might make the surfaceTexture listener redundant
+        // glSurfaceView.renderMode = RENDERMODE_CONTINUOUSLY
         //assign our renderer
-        glSurfaceView.setRenderer(renderer)
+        glSurfaceView?.setRenderer(renderer)
+        setContentView(glSurfaceView)
     }
 
     private fun textureViewApproach() {
@@ -71,14 +101,14 @@ class CameraActivity : AppCompatActivity() {
     override fun onPause() {
         super.onPause()
         if (rendererSet) {
-            glSurfaceView.onPause()
+            glSurfaceView?.onPause()
         }
     }
 
     override fun onResume() {
         super.onResume()
         if (rendererSet) {
-            glSurfaceView.onResume()
+            glSurfaceView?.onResume()
         }
     }
 }
