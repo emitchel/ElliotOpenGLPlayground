@@ -47,6 +47,7 @@ dependencies {
     implementation("androidx.camera:camera-video:1.2.3")
     implementation("androidx.camera:camera-view:1.2.3")
     implementation("androidx.camera:camera-extensions:1.2.3")
+    implementation("com.google.mlkit:segmentation-selfie:16.0.0-beta4")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.1")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.6.4")
     implementation("androidx.camera:camera-camera2:1.2.3")

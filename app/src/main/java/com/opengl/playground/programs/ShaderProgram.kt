@@ -38,6 +38,7 @@ abstract class ShaderProgram protected constructor(
         const val U_MATRIX = "u_Matrix"
         const val U_COLOR = "u_Color"
         const val U_TEXTURE_UNIT = "u_TextureUnit"
+        const val U_MASK_TEXTURE_UNIT= "u_MaskTexture"
         const val U_TIME = "u_Time"
         const val U_VECTOR_TO_LIGHT = "u_VectorToLight"
         const val U_MV_MATRIX = "u_MVMatrix"

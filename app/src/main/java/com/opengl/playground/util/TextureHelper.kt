@@ -1,6 +1,7 @@
 package com.opengl.playground.util
 
 import android.content.Context
+import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.opengl.GLES11Ext
 import android.opengl.GLES20
@@ -22,6 +23,7 @@ import android.opengl.GLES20.glGenTextures
 import android.opengl.GLES20.glGenerateMipmap
 import android.opengl.GLES20.glTexParameteri
 import android.opengl.GLUtils.texImage2D
+import java.nio.ByteBuffer
 
 object TextureHelper {
     private const val TAG = "TextureHelper"
@@ -126,7 +128,94 @@ object TextureHelper {
         glBindTexture(GL_TEXTURE_2D, 0)
         return textureObjectIds[0]
     }
-    fun createTexture(): Int {
+
+    fun loadTexture(bitmap: Bitmap): Int {
+        val textureObjectIds = IntArray(1)
+        // 1 is the number of texture names to generate
+        // 0 is the position in the array to start storing names
+        glGenTextures(1, textureObjectIds, 0)
+        if (textureObjectIds[0] == 0) {
+            log("Could not generate a new OpenGL texture object.")
+            return 0
+        }
+        val options = BitmapFactory.Options()
+        options.inScaled = false
+
+        // Bind to the texture in OpenGL - this will make all following configuration
+        // reflect on this texture
+        glBindTexture(GL_TEXTURE_2D, textureObjectIds[0])
+
+        // Set filtering: a default must be set, or the texture will be
+        // black.
+        //MINIFIYING approach (when the texture is smaller than the original)
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR)
+        //MAGNIFYING approach (when the texture is larger than the original)
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
+        // Load the bitmap into the bound texture.
+        texImage2D(GL_TEXTURE_2D, 0, bitmap, 0)
+
+        // Note: Following code may cause an error to be reported in the
+        // ADB log as follows: E/IMGSRV(20095): :0: HardwareMipGen:
+        // Failed to generate texture mipmap levels (error=3)
+        // No OpenGL error will be encountered (glGetError() will return
+        // 0). If this happens, just squash the source image to be
+        // square. It will look the same because of texture coordinates,
+        // and mipmap generation will work.
+
+        //This improves efficiency but increases memory
+        glGenerateMipmap(GL_TEXTURE_2D)
+
+        // Recycle the bitmap, since its data has been loaded into
+        // OpenGL.
+        bitmap.recycle()
+
+        // Unbind from the texture.
+        glBindTexture(GL_TEXTURE_2D, 0)
+        return textureObjectIds[0]
+    }
+
+    fun createTextureFromByteBuffer(buffer: ByteBuffer, width: Int, height: Int): Int {
+        val textureIds = IntArray(1)
+        GLES20.glGenTextures(1, textureIds, 0)
+
+        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textureIds[0])
+        GLES20.glTexParameteri(
+            GLES20.GL_TEXTURE_2D,
+            GLES20.GL_TEXTURE_WRAP_S,
+            GLES20.GL_CLAMP_TO_EDGE
+        )
+        GLES20.glTexParameteri(
+            GLES20.GL_TEXTURE_2D,
+            GLES20.GL_TEXTURE_WRAP_T,
+            GLES20.GL_CLAMP_TO_EDGE
+        )
+        GLES20.glTexParameteri(
+            GLES20.GL_TEXTURE_2D,
+            GLES20.GL_TEXTURE_MIN_FILTER,
+            GLES20.GL_NEAREST
+        )
+        GLES20.glTexParameteri(
+            GLES20.GL_TEXTURE_2D,
+            GLES20.GL_TEXTURE_MAG_FILTER,
+            GLES20.GL_NEAREST
+        )
+        GLES20.glTexImage2D(
+            GLES20.GL_TEXTURE_2D,
+            0,
+            GLES20.GL_LUMINANCE,
+            width,
+            height,
+            0,
+            GLES20.GL_LUMINANCE,
+            GLES20.GL_UNSIGNED_BYTE,
+            buffer
+        )
+
+        glBindTexture(GL_TEXTURE_2D, 0)
+        return textureIds[0]
+    }
+
+    fun createExternalOesTexture(): Int {
         val texture = IntArray(1)
 
         // Generate a new texture ID
@@ -145,6 +234,7 @@ object TextureHelper {
         GLES20.glTexParameteri(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_WRAP_T, GLES20.GL_CLAMP_TO_EDGE)
 
         log("created texture id ${texture[0]}")
+        glBindTexture(GL_TEXTURE_2D, 0)
         return texture[0]
     }
 }

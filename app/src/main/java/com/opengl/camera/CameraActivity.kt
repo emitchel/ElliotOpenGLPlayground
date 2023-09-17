@@ -5,10 +5,12 @@ import android.opengl.GLSurfaceView
 import android.os.Bundle
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
-import com.opengl.camera.programs.CameraProgram
+import androidx.camera.core.ExperimentalGetImage
 import com.opengl.camera.programs.FullScreenStaticImageProgram
+import com.opengl.camera.programs.SegmentationOnlyCameraProgram
 import com.opengl.playground.R
 
+@ExperimentalGetImage
 class CameraActivity : AppCompatActivity() {
 
     // private val textureView: TextureView by lazy {
@@ -20,8 +22,8 @@ class CameraActivity : AppCompatActivity() {
     private val renderer by lazy {
         RecordedCanvasRenderer {
             listOf(
-                FullScreenStaticImageProgram(this, R.drawable.article),
-                CameraProgram(this, this, glSurfaceView!!)
+                // FullScreenStaticImageProgram(this, R.drawable.article),
+                SegmentationOnlyCameraProgram(this, this, glSurfaceView!!)
             )
         }
     }

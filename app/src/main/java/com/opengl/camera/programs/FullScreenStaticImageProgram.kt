@@ -1,9 +1,11 @@
 package com.opengl.camera.programs
 
 import android.content.Context
+import android.graphics.BitmapFactory
 import android.opengl.GLES20
 import android.opengl.GLES20.GL_TEXTURE_2D
 import android.opengl.Matrix
+import androidx.camera.core.ExperimentalGetImage
 import com.opengl.camera.CameraActivity
 import com.opengl.playground.R
 import com.opengl.playground.airhockey.AirHockeyRenderer
@@ -11,6 +13,7 @@ import com.opengl.playground.objects.VertexArray
 import com.opengl.playground.programs.TextureShaderProgram
 import com.opengl.playground.util.TextureHelper
 
+@ExperimentalGetImage
 class FullScreenStaticImageProgram(
     val context: Context,
     private val drawableInt: Int
@@ -25,7 +28,15 @@ class FullScreenStaticImageProgram(
 
     private val modelMatrix = FloatArray(16)
     override fun onSurfaceCreated() {
-        textureId = TextureHelper.loadTexture(context, drawableInt)
+
+        val options = BitmapFactory.Options()
+        options.inScaled = false
+
+        // Read in the resource
+        val bitmap = BitmapFactory.decodeResource(
+            context.resources, drawableInt, options
+        )
+        textureId = TextureHelper.loadTexture(bitmap)
     }
 
     override fun onSurfaceChanged(width: Int, height: Int) {
@@ -73,32 +84,8 @@ class FullScreenStaticImageProgram(
 
     private fun positionContent() {
         Matrix.setIdentityM(modelMatrix, 0)
-
-        // As far as I can tell, the camera preview always comes in sideways.
-        // Every app who manages their own surface texture has to rotate it and set the scale.
-
-        val cameraAspectRatio = 1080f / 1920f   // 0.5625
-        val viewportAspectRatio = width.toFloat() / height.toFloat()
-        // if (viewportAspectRatio > cameraAspectRatio) {
-        //     // The viewport is wider than the camera feed.
-        //     // We scale up in the Y direction to fill and crop.
-        //     val scale = viewportAspectRatio / cameraAspectRatio
-        //     Matrix.scaleM(modelMatrix, 0, 1f, scale, 1f)
-        // } else {
-        //     // The viewport is taller than the camera feed.
-        //     // We scale up in the X direction to fill and crop.
-        //     val scale = cameraAspectRatio / viewportAspectRatio
-        //     Matrix.scaleM(modelMatrix, 0, scale, 1f, 1f)
-        // }
-        // Matrix.rotateM(modelMatrix, 0, 90f, 0f, 0f, 1f)
-        // val mirrorMatrix = floatArrayOf(
-        //     -1f, 0f, 0f, 0f,
-        //     0f, 1f, 0f, 0f,
-        //     0f, 0f, 1f, 0f,
-        //     0f, 0f, 0f, 1f
-        // )
-        //
-        // Matrix.multiplyMM(modelMatrix, 0, mirrorMatrix, 0, modelMatrix, 0)
+        // it loads the assets into full frame, so no modifications needed at the moment
+        // could maintain it's aspect ratio given the content but we're not doing that now
     }
 
     companion object {
