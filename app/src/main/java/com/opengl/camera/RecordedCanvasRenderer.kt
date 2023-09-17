@@ -22,7 +22,7 @@ class RecordedCanvasRenderer(
     }
 
     override fun onSurfaceChanged(p0: GL10?, width: Int, height: Int) {
-        log("Elliot surface changed $width $height")
+        log("surface changed $width $height")
         GLES20.glViewport(0, 0, width, height)
         renderers.forEach {
             it.onSurfaceChanged(width, height)

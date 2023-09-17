@@ -85,7 +85,7 @@ class CameraProgram(
                     preview
                 )
             } catch (exc: Exception) {
-                log("elliot!! CameraX use case binding failed $exc")
+                log(" CameraX use case binding failed $exc")
             }
 
         }, ContextCompat.getMainExecutor(context))

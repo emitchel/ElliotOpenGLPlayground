@@ -28,6 +28,7 @@ import com.opengl.playground.util.TextureHelper
 import com.opengl.playground.util.log
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
+import java.util.LinkedList
 
 @ExperimentalGetImage
 class SegmentationOnlyCameraProgram(
@@ -43,11 +44,11 @@ class SegmentationOnlyCameraProgram(
     CameraActivity.CanvasRendererLayer {
 
     private var cameraTextureId = 0
-    private var maskTextureId = 0
+    private var maskTextureId = -1
     private var surfaceTexture: SurfaceTexture? = null
     private var width: Int = 0
     private var height: Int = 0
-    private var latestSegmentationMask: SegmentationMask? = null
+    private val masks = LinkedList<SegmentationMask>()
 
     override fun onSurfaceCreated() {
         cameraTextureId = TextureHelper.createExternalOesTexture()
@@ -61,19 +62,19 @@ class SegmentationOnlyCameraProgram(
             glSurfaceView.requestRender()
         }
 
-        val initialFloats = FloatArray((1080 * 1920)) { 0f }
-        val initialByteBuffer = initialFloats.toByteBuffer()
-        initialByteBuffer.position(0)
-        maskTextureId =
-            TextureHelper.createTextureFromByteBuffer(
-                initialByteBuffer, 1080, 1920
-            )
-        error = GLES20.glGetError()
-        if (error != GLES20.GL_NO_ERROR) {
-            throw RuntimeException("OpenGL error1: $error")
-        }
+        // val initialFloats = FloatArray((1080 * 1920)) { 01f }
+        // val initialByteBuffer = initialFloats.toByteBuffer()
+        // initialByteBuffer.position(0)
+        // maskTextureId =
+        //     TextureHelper.createTextureFromByteBuffer(
+        //         initialByteBuffer, 1080, 1920
+        //     )
+        // error = GLES20.glGetError()
+        // if (error != GLES20.GL_NO_ERROR) {
+        //     throw RuntimeException("OpenGL error1: $error")
+        // }
 
-        log("elliot!! bytebuffer initial size = ${initialByteBuffer.capacity()}")
+        // log(" bytebuffer initial size = ${initialByteBuffer.capacity()}")
     }
 
     fun FloatArray.toByteBuffer(): ByteBuffer {
@@ -136,7 +137,7 @@ class SegmentationOnlyCameraProgram(
                         imageProxy.close()
                     }
                     .addOnFailureListener {
-                        log("elliot!! failed to segment image")
+                        log("failed to segment image")
                         imageProxy.close()
                     }
             }
@@ -153,31 +154,19 @@ class SegmentationOnlyCameraProgram(
                     imageAnalysis
                 )
             } catch (exc: Exception) {
-                log("elliot!! CameraX use case binding failed $exc")
+                log("CameraX use case binding failed $exc")
             }
 
         }, ContextCompat.getMainExecutor(context))
     }
 
+    private var times = 0
     private fun segmentationMaskToTexture(segmentationMask: SegmentationMask) {
-        latestSegmentationMask = segmentationMask
-        // log(
-        //     "bytebuffer fresh float size size = ${
-        //         segmentationMask.buffer.asFloatBuffer().capacity()
-        //     }"
-        // )
-        // GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, maskTextureId)
-        // GLES20.glTexSubImage2D(
-        //     GLES20.GL_TEXTURE_2D,
-        //     0,
-        //     0,
-        //     0,
-        //     segmentationMask.width,
-        //     segmentationMask.height,
-        //     GLES20.GL_LUMINANCE,
-        //     GLES20.GL_FLOAT,
-        //     segmentationMask.buffer
-        // )
+        // if (times > 4) return
+        masks.add(segmentationMask)
+        times++
+
+        // log("added mask to queue, size: ${masks.size}")
     }
 
     override fun onSurfaceChanged(width: Int, height: Int) {
@@ -192,11 +181,20 @@ class SegmentationOnlyCameraProgram(
     private val modelMatrix = FloatArray(16)
 
     // called onDrawFrame from GLSurfaceView.Renderer
+    var latestSegmentationMask: SegmentationMask? = null
     override fun onDrawFrame() {
-        if (latestSegmentationMask == null) {
+
+        if (masks.peekFirst() == null && latestSegmentationMask == null) {
             // log("Not drawing yet because no segmentation!")
             return
         }
+
+        if (masks.peekFirst() != null) {
+            // Drawing is much faster than the segmentation so this is kind of redundant
+            latestSegmentationMask = masks.remove()
+        }
+
+        // log("pulled latest mask, size: ${masks.size}")
         // set positioning... i think
         positionFrameCorrectly()
         // setup the shaders to run
@@ -214,10 +212,26 @@ class SegmentationOnlyCameraProgram(
             0
         );
 
-// Set the active texture unit to texture unit 1 for the segmentation mask.
         latestSegmentationMask!!.buffer.position(0)
+        if (maskTextureId == -1) {
+            maskTextureId =
+                TextureHelper.createTextureFromByteBuffer(
+                    latestSegmentationMask!!.buffer,
+                    latestSegmentationMask!!.width,
+                    latestSegmentationMask!!.height
+                )
+        }
+
+        // TODO This doesn't work, need to try isolating the byte buffer to render on it's own to understand
+        // how to map values since i think the mapping isn't correct... or something
+// Set the active texture unit to texture unit 1 for the segmentation mask.
         GLES20.glActiveTexture(GLES20.GL_TEXTURE1)
-        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, maskTextureId)
+        GLES20.glBindTexture(
+            GLES20.GL_TEXTURE_2D,
+            maskTextureId
+        )
+
+        log("mask width = ${latestSegmentationMask!!.width} height = ${latestSegmentationMask!!.height}")
         GLES20.glTexSubImage2D(
             GLES20.GL_TEXTURE_2D,
             0,
@@ -279,7 +293,7 @@ class SegmentationOnlyCameraProgram(
         Matrix.multiplyMM(modelMatrix, 0, mirrorMatrix, 0, modelMatrix, 0)
 
         // TODO use this to scale and move the camera !!!
-        Matrix.scaleM(modelMatrix, 0, .5f, .5f, .5f)
+        // Matrix.scaleM(modelMatrix, 0, .5f, .5f, .5f)
     }
 
     companion object {

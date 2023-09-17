@@ -17,6 +17,7 @@ class CameraSegmenter(context: Context) {
         optionsBuilder.setDetectorMode(
             SelfieSegmenterOptions.STREAM_MODE
         )
+            // .enableRawSizeMask()
         val options = optionsBuilder.build()
         segmenter = Segmentation.getClient(options)
     }
