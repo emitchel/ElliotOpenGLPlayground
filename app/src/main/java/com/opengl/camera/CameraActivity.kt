@@ -5,6 +5,8 @@ import android.opengl.GLSurfaceView
 import android.os.Bundle
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import com.opengl.camera.programs.CameraProgram
+import com.opengl.camera.programs.FullScreenStaticImageProgram
 import com.opengl.playground.R
 
 class CameraActivity : AppCompatActivity() {
@@ -18,6 +20,7 @@ class CameraActivity : AppCompatActivity() {
     private val renderer by lazy {
         RecordedCanvasRenderer {
             listOf(
+                FullScreenStaticImageProgram(this, R.drawable.article),
                 CameraProgram(this, this, glSurfaceView!!)
             )
         }

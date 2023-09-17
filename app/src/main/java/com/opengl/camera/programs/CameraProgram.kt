@@ -1,4 +1,4 @@
-package com.opengl.camera
+package com.opengl.camera.programs
 
 import android.content.Context
 import android.graphics.SurfaceTexture
@@ -13,6 +13,7 @@ import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
+import com.opengl.camera.CameraActivity
 import com.opengl.playground.R
 import com.opengl.playground.airhockey.AirHockeyRenderer
 import com.opengl.playground.objects.VertexArray
@@ -142,6 +143,9 @@ class CameraProgram(
 
     private fun positionFrameCorrectly() {
         Matrix.setIdentityM(modelMatrix, 0)
+
+        // As far as I can tell, the camera preview always comes in sideways.
+        // Every app who manages their own surface texture has to rotate it and set the scale.
 
         val cameraAspectRatio = 1080f / 1920f   // 0.5625
         val viewportAspectRatio = width.toFloat() / height.toFloat()
