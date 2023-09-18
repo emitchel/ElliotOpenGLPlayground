@@ -58,6 +58,8 @@ class SegmentationOnlyCameraProgram(
     private var byteBufferWidth: Int = 0
     private var byteBufferHeight: Int = 0
 
+    var showSegmentation = false
+
     override fun onSurfaceCreated() {
         cameraTextureId = TextureHelper.createExternalOesTexture()
         var error = GLES20.glGetError()
@@ -204,10 +206,14 @@ class SegmentationOnlyCameraProgram(
         Matrix.scaleM(modelMatrix, 0, scaleFactor, scaleFactor, 1f)
     }
 
+    fun onShowSegmentationMask(show: Boolean) {
+        showSegmentation = show
+    }
+
     fun onDrag(distanceX: Float, distanceY: Float) {
         val normalizedDistanceX = -distanceX / viewPortWidth
         val normalizedDistanceY = distanceY / viewPortHeight
-        deltaX += normalizedDistanceX * 2f
+        deltaX += normalizedDistanceX * 2f // this 2f factor isn't great but it's more  accurate than not
         deltaY += normalizedDistanceY * 2f
     }
 
@@ -317,6 +323,11 @@ class SegmentationOnlyCameraProgram(
             val buffer = ByteBuffer.allocateDirect(maskWidth * maskHeight * 4).order(ByteOrder.nativeOrder()) // 4 bytes for RGBA
 
             for (i in 0 until maskWidth * maskHeight) {
+
+                if (!showSegmentation) {
+                    buffer.putInt(Color.TRANSPARENT)
+                    continue
+                }
                 val backgroundLikelihood = 1 - it.buffer.float
                 @ColorInt val color: Int
 

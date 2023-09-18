@@ -113,7 +113,16 @@ class CameraActivity : AppCompatActivity() {
                 }
                 return true
             }
+
+            override fun onSingleTapConfirmed(e: MotionEvent): Boolean {
+
+                glSurfaceView?.queueEvent {
+                    segmentedCameraProgram.onShowSegmentationMask(!segmentedCameraProgram.showSegmentation)
+                }
+                return true
+            }
         })
+
         scaleGestureDetector =
             ScaleGestureDetector(
                 this,
