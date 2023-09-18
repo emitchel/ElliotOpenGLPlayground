@@ -7,6 +7,7 @@ import android.opengl.GLES11Ext
 import android.opengl.GLES20
 import android.opengl.GLSurfaceView
 import android.opengl.Matrix
+import android.util.Log
 import android.util.Size
 import android.view.Surface
 import androidx.annotation.ColorInt
@@ -29,6 +30,7 @@ import com.opengl.playground.programs.TextureShaderProgram
 import com.opengl.playground.util.TextureHelper
 import com.opengl.playground.util.log
 import java.nio.ByteBuffer
+import java.nio.ByteOrder
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -302,16 +304,18 @@ class SegmentationOnlyCameraProgram(
 
             // The size of the buffer remains the same
 
-            val buffer = ByteBuffer.allocateDirect(maskWidth * maskHeight * 4) // 4 bytes for RGBA
+            val buffer = ByteBuffer.allocateDirect(maskWidth * maskHeight * 4).order(ByteOrder.nativeOrder()) // 4 bytes for RGBA
 
             for (i in 0 until maskWidth * maskHeight) {
                 val backgroundLikelihood = 1 - it.buffer.float
                 @ColorInt val color: Int
 
                 if (backgroundLikelihood > 0.9) {
-                    color = Color.argb(128, 255, 0, 255)
+                    color = Color.argb(255, 255, 0, 255)
                 } else if (backgroundLikelihood > 0.2) {
                     val alpha = (182.9 * backgroundLikelihood - 36.6 + 0.5).toInt()
+                    // val alpha = (255 * backgroundLikelihood).toInt()
+                    Log.d("MaskAlpha", "Computed Alpha: $alpha for backgroundLikelihood: $backgroundLikelihood");
                     color = Color.argb(alpha, 255, 0, 255)
                 } else {
                     color = Color.TRANSPARENT
