@@ -7,7 +7,6 @@ import android.opengl.GLES11Ext
 import android.opengl.GLES20
 import android.opengl.GLSurfaceView
 import android.opengl.Matrix
-import android.util.Log
 import android.util.Size
 import android.view.Surface
 import androidx.annotation.ColorInt
@@ -173,11 +172,17 @@ class SegmentationOnlyCameraProgram(
         GLES20.glDisable(GLES20.GL_BLEND);
     }
 
+    var scaleFactor = 1f
+    var deltaX = 0f
+    var deltaY = 0f
+
     private fun positionCameraCorrectly() {
         Matrix.setIdentityM(modelMatrix, 0)
         // As far as I can tell, the camera preview always comes in sideways.
         // Every app who manages their own surface texture has to rotate it and set the scale.
+        //Rotation and mirror happens in the fragment shader since we have two textures here...
 
+        // We do handle the aspect ratio here, though
         val cameraAspectRatio = 1080f / 1920f   // 0.5625
         val viewportAspectRatio = viewPortWidth.toFloat() / viewPortHeight.toFloat()
         if (viewportAspectRatio > cameraAspectRatio) {
@@ -191,18 +196,23 @@ class SegmentationOnlyCameraProgram(
             val scale = cameraAspectRatio / viewportAspectRatio
             Matrix.scaleM(modelMatrix, 0, scale, 1f, 1f)
         }
-        // Matrix.rotateM(modelMatrix, 0, 90f, 0f, 0f, 1f)
-        // val mirrorMatrix = floatArrayOf(
-        //     -1f, 0f, 0f, 0f,
-        //     0f, 1f, 0f, 0f,
-        //     0f, 0f, 1f, 0f,
-        //     0f, 0f, 0f, 1f
-        // )
-        //
-        // Matrix.multiplyMM(modelMatrix, 0, mirrorMatrix, 0, modelMatrix, 0)
 
-        // TODO use this to scale and move the camera !!!
-        Matrix.scaleM(modelMatrix, 0, .5f, .5f, .5f)
+        // Apply translation (drag)
+        Matrix.translateM(modelMatrix, 0, deltaX, deltaY, 0f)
+        //
+        // // Apply scaling (zoom)
+        Matrix.scaleM(modelMatrix, 0, scaleFactor, scaleFactor, 1f)
+    }
+
+    fun onDrag(distanceX: Float, distanceY: Float) {
+        val normalizedDistanceX = -distanceX / viewPortWidth
+        val normalizedDistanceY = distanceY / viewPortHeight
+        deltaX += normalizedDistanceX * 2f
+        deltaY += normalizedDistanceY * 2f
+    }
+
+    fun onZoom(factor: Float) {
+        scaleFactor *= factor
     }
 
     companion object {
@@ -314,8 +324,6 @@ class SegmentationOnlyCameraProgram(
                     color = Color.argb(255, 255, 0, 255)
                 } else if (backgroundLikelihood > 0.2) {
                     val alpha = (182.9 * backgroundLikelihood - 36.6 + 0.5).toInt()
-                    // val alpha = (255 * backgroundLikelihood).toInt()
-                    Log.d("MaskAlpha", "Computed Alpha: $alpha for backgroundLikelihood: $backgroundLikelihood");
                     color = Color.argb(alpha, 255, 0, 255)
                 } else {
                     color = Color.TRANSPARENT

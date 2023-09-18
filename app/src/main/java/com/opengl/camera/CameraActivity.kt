@@ -3,11 +3,13 @@ package com.opengl.camera
 import android.annotation.SuppressLint
 import android.opengl.GLSurfaceView
 import android.os.Bundle
+import android.view.GestureDetector
+import android.view.MotionEvent
+import android.view.ScaleGestureDetector
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.camera.core.ExperimentalGetImage
 import androidx.lifecycle.lifecycleScope
-import com.google.mlkit.vision.segmentation.SegmentationMask
 import com.opengl.camera.programs.ByteBufferMaskProgram
 import com.opengl.camera.programs.CameraProgram
 import com.opengl.camera.programs.FullScreenStaticImageProgram
@@ -56,8 +58,11 @@ class CameraActivity : AppCompatActivity() {
         FullScreenStaticImageProgram(this, R.drawable.article)
     }
 
-    private var segmentationOnlyCameraProgram: SegmentationOnlyCameraProgram? = null
+    private val segmentedCameraProgram by lazy {
+        SegmentationOnlyCameraProgram(this, lifecycleScope, this, glSurfaceView!!)
+    }
 
+    private var segmentationOnlyCameraProgram: SegmentationOnlyCameraProgram? = null
 
     interface CanvasRendererLayer {
         fun onSurfaceCreated()
@@ -75,13 +80,9 @@ class CameraActivity : AppCompatActivity() {
             startRendering()
         }
 
-    /**
-     * TODO
-     * 1. Must use SurfaceView with SurfaceHolder to initialize
-     * 2. Camera must launch on SurfaceTexture (or find another way to launch onto it)
-     * 3. Must be able to draw a texture from an image on the SurfaceView
-     * 4. Must be able to take the SurfaceTexture and apply same frames on SurfaceView
-     */
+    var scaleGestureDetector:
+        ScaleGestureDetector? = null
+    var gestureDetector: GestureDetector? = null
 
     @SuppressLint("ClickableViewAccessibility")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -97,6 +98,41 @@ class CameraActivity : AppCompatActivity() {
                 android.Manifest.permission.WRITE_EXTERNAL_STORAGE
             )
         )
+
+
+        gestureDetector = GestureDetector(this, object : GestureDetector.SimpleOnGestureListener() {
+            override fun onScroll(
+                e1: MotionEvent?,
+                e2: MotionEvent,
+                distanceX: Float,
+                distanceY: Float
+            ): Boolean {
+
+                glSurfaceView?.queueEvent {
+                    segmentedCameraProgram.onDrag(distanceX, distanceY)
+                }
+                return true
+            }
+        })
+        scaleGestureDetector =
+            ScaleGestureDetector(
+                this,
+                object : ScaleGestureDetector.SimpleOnScaleGestureListener() {
+                    override fun onScale(detector: ScaleGestureDetector): Boolean {
+                        // Handle zoom (scale) here.
+                        val scaleFactor = detector.scaleFactor
+                        glSurfaceView?.queueEvent {
+                            segmentedCameraProgram.onZoom(scaleFactor)
+                        }
+                        return true
+                    }
+                })
+    }
+
+    override fun onTouchEvent(event: MotionEvent): Boolean {
+        scaleGestureDetector?.onTouchEvent(event)
+        gestureDetector?.onTouchEvent(event)
+        return true
     }
 
     private fun startRendering() {
@@ -110,7 +146,7 @@ class CameraActivity : AppCompatActivity() {
         val renderer = RecordedCanvasRenderer {
             listOf(
                 fullScreenStaticImageProgram,
-                SegmentationOnlyCameraProgram(this, lifecycleScope, this, glSurfaceView!!)
+                segmentedCameraProgram,
                 // TODO this works... segmntation only
                 // cameraProgram,
                 // byteBufferMaskProgram
