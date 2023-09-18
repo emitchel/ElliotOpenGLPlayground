@@ -118,21 +118,6 @@ class SegmentationOnlyCameraProgram(
             0
         );
 
-        // bind the triangle + texture data
-        vertexArray.setVertexAttribPointer(
-            0,
-            getPositionAttributeLocation(),
-            POSITION_COMPONENT_COUNT,
-            STRIDE
-        )
-        vertexArray.setVertexAttribPointer(
-            POSITION_COMPONENT_COUNT,
-            getTextureCoordinatesAttributeLocation(),
-            TEXTURE_COORDINATES_COMPONENT_COUNT,
-            STRIDE
-        )
-        //Draw right away for the camera positioning
-        GLES20.glDrawArrays(GLES20.GL_TRIANGLE_FAN, 0, 6)
 
         // Don't draw the segmentation mask if it hasn't been updated yet.
         if (byteBuffer == null) {
