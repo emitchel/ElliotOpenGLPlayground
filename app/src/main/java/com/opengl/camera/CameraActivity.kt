@@ -6,9 +6,16 @@ import android.os.Bundle
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.camera.core.ExperimentalGetImage
+import androidx.lifecycle.lifecycleScope
+import com.google.mlkit.vision.segmentation.SegmentationMask
+import com.opengl.camera.programs.ByteBufferMaskProgram
+import com.opengl.camera.programs.CameraProgram
 import com.opengl.camera.programs.FullScreenStaticImageProgram
 import com.opengl.camera.programs.SegmentationOnlyCameraProgram
 import com.opengl.playground.R
+import java.nio.ByteBuffer
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 @ExperimentalGetImage
 class CameraActivity : AppCompatActivity() {
@@ -18,15 +25,39 @@ class CameraActivity : AppCompatActivity() {
     // }
 
     private var glSurfaceView: GLSurfaceView? = null
+    private val byteBufferMaskProgram by lazy {
+        ByteBufferMaskProgram(this)
+    }
+    private val cameraProgram by lazy {
+        CameraProgram(this, this, glSurfaceView!!) {
+            lifecycleScope.launch(Dispatchers.IO) {
+                val mask = it.getBuffer()
+                val maskWidth = it.getWidth()
+                val maskHeight = it.getHeight()
 
-    private val renderer by lazy {
-        RecordedCanvasRenderer {
-            listOf(
-                // FullScreenStaticImageProgram(this, R.drawable.article),
-                SegmentationOnlyCameraProgram(this, this, glSurfaceView!!)
-            )
+                val byteBufferSize = maskWidth * maskHeight // one byte per pixel for LUMINANCE
+                val resultBuffer = ByteBuffer.allocateDirect(byteBufferSize)
+
+                for (y in 0 until maskHeight) {
+                    for (x in 0 until maskWidth) {
+                        val foregroundConfidence = mask.getFloat()
+                        val byteValue = (foregroundConfidence * 255.0f).toInt().toByte()
+                        resultBuffer.put(byteValue)
+                    }
+                }
+
+                resultBuffer.rewind()
+                byteBufferMaskProgram.updateMaskData(resultBuffer, maskWidth, maskHeight)
+            }
         }
     }
+
+    private val fullScreenStaticImageProgram by lazy {
+        FullScreenStaticImageProgram(this, R.drawable.article)
+    }
+
+    private var segmentationOnlyCameraProgram: SegmentationOnlyCameraProgram? = null
+
 
     interface CanvasRendererLayer {
         fun onSurfaceCreated()
@@ -75,6 +106,16 @@ class CameraActivity : AppCompatActivity() {
         // TODO this might make the surfaceTexture listener redundant
         // glSurfaceView.renderMode = RENDERMODE_CONTINUOUSLY
         //assign our renderer
+
+        val renderer = RecordedCanvasRenderer {
+            listOf(
+                fullScreenStaticImageProgram,
+                SegmentationOnlyCameraProgram(this, lifecycleScope, this, glSurfaceView!!)
+                // TODO this works... segmntation only
+                // cameraProgram,
+                // byteBufferMaskProgram
+            )
+        }
         glSurfaceView?.setRenderer(renderer)
         setContentView(glSurfaceView)
     }

@@ -6,14 +6,19 @@ import android.opengl.GLES11Ext
 import android.opengl.GLES20
 import android.opengl.GLSurfaceView
 import android.opengl.Matrix
+import android.util.Size
 import android.view.Surface
 import androidx.camera.core.AspectRatio
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ExperimentalGetImage
+import androidx.camera.core.ImageAnalysis
+import androidx.camera.core.ImageProxy
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
+import com.google.mlkit.vision.common.InputImage
+import com.google.mlkit.vision.segmentation.SegmentationMask
 import com.opengl.camera.CameraActivity
 import com.opengl.playground.R
 import com.opengl.playground.airhockey.AirHockeyRenderer
@@ -26,7 +31,8 @@ import com.opengl.playground.util.log
 class CameraProgram(
     val context: Context,
     private val lifecycleOwner: LifecycleOwner,
-    private val glSurfaceView: GLSurfaceView
+    private val glSurfaceView: GLSurfaceView,
+    val segmentMaskCallback: (SegmentationMask) -> Unit
 ) :
     TextureShaderProgram(context, R.raw.camera_vertex_shader, R.raw.camera_fragment_shader),
     CameraActivity.CanvasRendererLayer {
@@ -73,6 +79,34 @@ class CameraProgram(
                     it.surface.release()
                 }
             }
+            val imageAnalysis = ImageAnalysis.Builder()
+                .setTargetResolution(Size(1080, 1920))
+                .build()
+
+            val segmenter = CameraSegmenter(context)
+            imageAnalysis.setAnalyzer(
+                // imageProcessor.processImageProxy will use another thread to run the detection underneath,
+                // thus we can just runs the analyzer itself on main thread.
+                ContextCompat.getMainExecutor(context)
+            ) { imageProxy: ImageProxy ->
+
+                // val originalImage = BitmapUtils.getBitmap(imageProxy)
+                segmenter.detectInImage(
+                    InputImage.fromMediaImage(
+                        imageProxy.image!!,
+                        imageProxy.imageInfo.rotationDegrees
+                    )
+                )
+                    .addOnSuccessListener { result ->
+                        // log("result height = ${result.height} width = ${result.width}")
+                        segmentMaskCallback(result)
+                        imageProxy.close()
+                    }
+                    .addOnFailureListener {
+                        log("failed to segment image")
+                        imageProxy.close()
+                    }
+            }
 
             try {
                 // Unbind use cases before rebinding
@@ -82,7 +116,8 @@ class CameraProgram(
                 cameraProvider.bindToLifecycle(
                     lifecycleOwner,
                     cameraSelector,
-                    preview
+                    preview,
+                    imageAnalysis
                 )
             } catch (exc: Exception) {
                 log(" CameraX use case binding failed $exc")
@@ -104,6 +139,7 @@ class CameraProgram(
 
     // called onDrawFrame from GLSurfaceView.Renderer
     override fun onDrawFrame() {
+        return
         // set positioning... i think
         positionFrameCorrectly()
         // setup the shaders to run

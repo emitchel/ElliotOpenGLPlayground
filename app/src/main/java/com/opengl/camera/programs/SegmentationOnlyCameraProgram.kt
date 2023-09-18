@@ -28,11 +28,14 @@ import com.opengl.playground.util.TextureHelper
 import com.opengl.playground.util.log
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
-import java.util.LinkedList
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 @ExperimentalGetImage
 class SegmentationOnlyCameraProgram(
     val context: Context,
+    private val coroutineScope: CoroutineScope,
     private val lifecycleOwner: LifecycleOwner,
     private val glSurfaceView: GLSurfaceView
 ) :
@@ -46,9 +49,12 @@ class SegmentationOnlyCameraProgram(
     private var cameraTextureId = 0
     private var maskTextureId = -1
     private var surfaceTexture: SurfaceTexture? = null
-    private var width: Int = 0
-    private var height: Int = 0
-    private val masks = LinkedList<SegmentationMask>()
+    private var viewPortWidth: Int = 0
+    private var viewPortHeight: Int = 0
+
+    private var byteBuffer: ByteBuffer? = null
+    private var byteBufferWidth: Int = 0
+    private var byteBufferHeight: Int = 0
 
     override fun onSurfaceCreated() {
         cameraTextureId = TextureHelper.createExternalOesTexture()
@@ -61,20 +67,6 @@ class SegmentationOnlyCameraProgram(
             // TODO NOTE: this may not be needed if we do continuous rendering
             glSurfaceView.requestRender()
         }
-
-        // val initialFloats = FloatArray((1080 * 1920)) { 01f }
-        // val initialByteBuffer = initialFloats.toByteBuffer()
-        // initialByteBuffer.position(0)
-        // maskTextureId =
-        //     TextureHelper.createTextureFromByteBuffer(
-        //         initialByteBuffer, 1080, 1920
-        //     )
-        // error = GLES20.glGetError()
-        // if (error != GLES20.GL_NO_ERROR) {
-        //     throw RuntimeException("OpenGL error1: $error")
-        // }
-
-        // log(" bytebuffer initial size = ${initialByteBuffer.capacity()}")
     }
 
     fun FloatArray.toByteBuffer(): ByteBuffer {
@@ -82,6 +74,29 @@ class SegmentationOnlyCameraProgram(
         buffer.order(ByteOrder.nativeOrder()).asFloatBuffer().put(this)
         buffer.position(0)  // Reset position
         return buffer
+    }
+
+    fun segmentMaskCallback(it: SegmentationMask) {
+        coroutineScope.launch(Dispatchers.IO) {
+            val mask = it.getBuffer()
+            val maskWidth = it.getWidth()
+            val maskHeight = it.getHeight()
+
+            val byteBufferSize = maskWidth * maskHeight // one byte per pixel for LUMINANCE
+            val resultBuffer = ByteBuffer.allocateDirect(byteBufferSize)
+
+            for (y in 0 until maskHeight) {
+                for (x in 0 until maskWidth) {
+                    val foregroundConfidence = mask.getFloat()
+                    val byteValue = (foregroundConfidence * 255.0f).toInt().toByte()
+                    resultBuffer.put(byteValue)
+                }
+            }
+
+            resultBuffer.rewind()
+            updateMaskData(resultBuffer, maskWidth, maskHeight)
+            // updateMaskData(mask, maskWidth, maskHeight)
+        }
     }
 
     private fun startCamera() {
@@ -133,7 +148,8 @@ class SegmentationOnlyCameraProgram(
                 )
                     .addOnSuccessListener { result ->
                         // log("result height = ${result.height} width = ${result.width}")
-                        segmentationMaskToTexture(result)
+                        segmentMaskCallback(result)
+
                         imageProxy.close()
                     }
                     .addOnFailureListener {
@@ -160,18 +176,19 @@ class SegmentationOnlyCameraProgram(
         }, ContextCompat.getMainExecutor(context))
     }
 
-    private var times = 0
-    private fun segmentationMaskToTexture(segmentationMask: SegmentationMask) {
-        // if (times > 4) return
-        masks.add(segmentationMask)
-        times++
+    private val lock = Any()
+    fun updateMaskData(byteBuffer: ByteBuffer, width: Int, height: Int) {
 
-        // log("added mask to queue, size: ${masks.size}")
+        synchronized(lock) {
+            this.byteBuffer = byteBuffer
+            this.byteBufferHeight = height
+            this.byteBufferWidth = width
+        }
     }
 
     override fun onSurfaceChanged(width: Int, height: Int) {
-        this.width = width
-        this.height = height
+        this.viewPortWidth = width
+        this.viewPortHeight = height
         startCamera()
     }
 
@@ -180,97 +197,85 @@ class SegmentationOnlyCameraProgram(
 
     private val modelMatrix = FloatArray(16)
 
-    // called onDrawFrame from GLSurfaceView.Renderer
-    var latestSegmentationMask: SegmentationMask? = null
     override fun onDrawFrame() {
+        if (byteBuffer == null) return
+        synchronized(lock) {
 
-        if (masks.peekFirst() == null && latestSegmentationMask == null) {
-            // log("Not drawing yet because no segmentation!")
-            return
-        }
+            // log("pulled latest mask, size: ${masks.size}")
+            // set positioning... i think
+            positionFrameCorrectly()
+            // setup the shaders to run
+            GLES20.glUseProgram(program)
 
-        if (masks.peekFirst() != null) {
-            // Drawing is much faster than the segmentation so this is kind of redundant
-            latestSegmentationMask = masks.remove()
-        }
+            surfaceTexture?.updateTexImage()
+            // Bind the camera texture
+            // Pass the matrix into the shader program.
+            GLES20.glUniformMatrix4fv(getuMatrixLocation(), 1, false, modelMatrix, 0)
+            // Set the active texture unit to texture unit 0 for camera feed.
+            GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
+            GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, cameraTextureId);
+            GLES20.glUniform1i(
+                getuTextureUnitLocation(),
+                0
+            );
 
-        // log("pulled latest mask, size: ${masks.size}")
-        // set positioning... i think
-        positionFrameCorrectly()
-        // setup the shaders to run
-        GLES20.glUseProgram(program)
 
-        surfaceTexture?.updateTexImage()
-        // Bind the camera texture
-        // Pass the matrix into the shader program.
-        GLES20.glUniformMatrix4fv(getuMatrixLocation(), 1, false, modelMatrix, 0)
-        // Set the active texture unit to texture unit 0 for camera feed.
-        GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
-        GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, cameraTextureId);
-        GLES20.glUniform1i(
-            getuTextureUnitLocation(),
-            0
-        );
+            if (maskTextureId == -1) {
+                maskTextureId =
+                    TextureHelper.createTextureFromByteBuffer2(
+                        byteBuffer!!,
+                        byteBufferWidth,
+                        byteBufferHeight
+                    )
+            }
 
-        latestSegmentationMask!!.buffer.position(0)
-        if (maskTextureId == -1) {
-            maskTextureId =
-                TextureHelper.createTextureFromByteBuffer(
-                    latestSegmentationMask!!.buffer,
-                    latestSegmentationMask!!.width,
-                    latestSegmentationMask!!.height
-                )
-        }
-
-        // TODO This doesn't work, need to try isolating the byte buffer to render on it's own to understand
-        // how to map values since i think the mapping isn't correct... or something
 // Set the active texture unit to texture unit 1 for the segmentation mask.
-        GLES20.glActiveTexture(GLES20.GL_TEXTURE1)
-        GLES20.glBindTexture(
-            GLES20.GL_TEXTURE_2D,
-            maskTextureId
-        )
+            GLES20.glActiveTexture(GLES20.GL_TEXTURE1)
+            GLES20.glBindTexture(
+                GLES20.GL_TEXTURE_2D,
+                maskTextureId
+            )
 
-        log("mask width = ${latestSegmentationMask!!.width} height = ${latestSegmentationMask!!.height}")
-        GLES20.glTexSubImage2D(
-            GLES20.GL_TEXTURE_2D,
-            0,
-            0,
-            0,
-            latestSegmentationMask!!.width,
-            latestSegmentationMask!!.height,
-            GLES20.GL_LUMINANCE,
-            GLES20.GL_UNSIGNED_BYTE,
-            latestSegmentationMask!!.buffer
-        )
-        GLES20.glUniform1i(getuMaskTextureUnitLocation(), 1)
+            GLES20.glTexSubImage2D(
+                GLES20.GL_TEXTURE_2D,
+                0,
+                0,
+                0,
+                byteBufferWidth,
+                byteBufferHeight,
+                GLES20.GL_LUMINANCE,
+                GLES20.GL_UNSIGNED_BYTE,
+                byteBuffer!!
+            )
+            GLES20.glUniform1i(getuMaskTextureUnitLocation(), 1)
 
-        // bind the triangle + texture data
-        vertexArray.setVertexAttribPointer(
-            0,
-            getPositionAttributeLocation(),
-            POSITION_COMPONENT_COUNT,
-            STRIDE
-        )
-        vertexArray.setVertexAttribPointer(
-            POSITION_COMPONENT_COUNT,
-            getTextureCoordinatesAttributeLocation(),
-            TEXTURE_COORDINATES_COMPONENT_COUNT,
-            STRIDE
-        )
+            // bind the triangle + texture data
+            vertexArray.setVertexAttribPointer(
+                0,
+                getPositionAttributeLocation(),
+                POSITION_COMPONENT_COUNT,
+                STRIDE
+            )
+            vertexArray.setVertexAttribPointer(
+                POSITION_COMPONENT_COUNT,
+                getTextureCoordinatesAttributeLocation(),
+                TEXTURE_COORDINATES_COMPONENT_COUNT,
+                STRIDE
+            )
 
-        // lastly, draw the vertices...
-        GLES20.glDrawArrays(GLES20.GL_TRIANGLE_FAN, 0, 6)
+            // lastly, draw the vertices...
+            GLES20.glDrawArrays(GLES20.GL_TRIANGLE_FAN, 0, 6)
+        }
     }
 
     private fun positionFrameCorrectly() {
         Matrix.setIdentityM(modelMatrix, 0)
-
+        // return
         // As far as I can tell, the camera preview always comes in sideways.
         // Every app who manages their own surface texture has to rotate it and set the scale.
 
         val cameraAspectRatio = 1080f / 1920f   // 0.5625
-        val viewportAspectRatio = width.toFloat() / height.toFloat()
+        val viewportAspectRatio = viewPortWidth.toFloat() / viewPortHeight.toFloat()
         if (viewportAspectRatio > cameraAspectRatio) {
             // The viewport is wider than the camera feed.
             // We scale up in the Y direction to fill and crop.
@@ -293,7 +298,7 @@ class SegmentationOnlyCameraProgram(
         Matrix.multiplyMM(modelMatrix, 0, mirrorMatrix, 0, modelMatrix, 0)
 
         // TODO use this to scale and move the camera !!!
-        // Matrix.scaleM(modelMatrix, 0, .5f, .5f, .5f)
+        Matrix.scaleM(modelMatrix, 0, .5f, .5f, .5f)
     }
 
     companion object {

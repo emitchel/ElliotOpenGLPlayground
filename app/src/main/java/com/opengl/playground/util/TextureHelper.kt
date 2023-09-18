@@ -22,6 +22,7 @@ import android.opengl.GLES20.glDeleteTextures
 import android.opengl.GLES20.glGenTextures
 import android.opengl.GLES20.glGenerateMipmap
 import android.opengl.GLES20.glTexParameteri
+import android.opengl.GLES30
 import android.opengl.GLUtils.texImage2D
 import java.nio.ByteBuffer
 
@@ -213,6 +214,35 @@ object TextureHelper {
 
         glBindTexture(GL_TEXTURE_2D, 0)
         return textureIds[0]
+    }
+
+    fun createTextureFromByteBuffer2(buffer: ByteBuffer, width: Int, height: Int): Int {
+        val textureArray = IntArray(1)
+        GLES20.glGenTextures(1, textureArray, 0)
+        val textureId = textureArray[0]
+
+        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textureId)
+
+        GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_S, GLES20.GL_CLAMP_TO_EDGE)
+        GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_T, GLES20.GL_CLAMP_TO_EDGE)
+        GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_LINEAR)
+        GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_LINEAR)
+
+        GLES20.glTexImage2D(
+            GLES20.GL_TEXTURE_2D,
+            0,
+            GLES20.GL_LUMINANCE,
+            width,
+            height,
+            0,
+            GLES20.GL_LUMINANCE,
+            GLES20.GL_UNSIGNED_BYTE,
+            buffer
+        )
+
+        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, 0)
+
+        return textureId
     }
 
     fun createExternalOesTexture(): Int {
