@@ -21,12 +21,10 @@
         android:theme="@style/Theme.Openglplayground"
         tools:targetApi="31">
         <activity
-            android:name=".airhockey.AirHockeyActivity"
-            android:exported="true">
-        </activity>
-        <activity android:name="com.opengl.camera.CameraActivity"
-            android:exported="true">
-
+            android:name="com.opengl.LaunchingActivity"
+            android:exported="true"
+            android:label="@string/title_activity_launching"
+            android:theme="@style/Theme.Openglplayground">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
@@ -34,10 +32,14 @@
             </intent-filter>
         </activity>
         <activity
+            android:name=".airhockey.AirHockeyActivity"
+            android:exported="true"></activity>
+        <activity
+            android:name="com.opengl.camera.CameraActivity"
+            android:exported="true"></activity>
+        <activity
             android:name=".particles.ParticlesActivity"
-            android:exported="true">
-
-        </activity>
+            android:exported="true"></activity>
     </application>
 
 </manifest>
