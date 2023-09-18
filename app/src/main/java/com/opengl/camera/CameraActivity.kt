@@ -15,9 +15,6 @@ import com.opengl.camera.programs.CameraProgram
 import com.opengl.camera.programs.FullScreenStaticImageProgram
 import com.opengl.camera.programs.SegmentationOnlyCameraProgram
 import com.opengl.playground.R
-import java.nio.ByteBuffer
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 
 @ExperimentalGetImage
 class CameraActivity : AppCompatActivity() {
@@ -27,30 +24,13 @@ class CameraActivity : AppCompatActivity() {
     // }
 
     private var glSurfaceView: GLSurfaceView? = null
+
     private val byteBufferMaskProgram by lazy {
         ByteBufferMaskProgram(this)
     }
     private val cameraProgram by lazy {
         CameraProgram(this, this, glSurfaceView!!) {
-            lifecycleScope.launch(Dispatchers.IO) {
-                val mask = it.getBuffer()
-                val maskWidth = it.getWidth()
-                val maskHeight = it.getHeight()
-
-                val byteBufferSize = maskWidth * maskHeight // one byte per pixel for LUMINANCE
-                val resultBuffer = ByteBuffer.allocateDirect(byteBufferSize)
-
-                for (y in 0 until maskHeight) {
-                    for (x in 0 until maskWidth) {
-                        val foregroundConfidence = mask.getFloat()
-                        val byteValue = (foregroundConfidence * 255.0f).toInt().toByte()
-                        resultBuffer.put(byteValue)
-                    }
-                }
-
-                resultBuffer.rewind()
-                byteBufferMaskProgram.updateMaskData(resultBuffer, maskWidth, maskHeight)
-            }
+            // TODO could see if we should use a different program to handle the mask...
         }
     }
 

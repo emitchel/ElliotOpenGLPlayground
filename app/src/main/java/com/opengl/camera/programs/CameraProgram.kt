@@ -20,6 +20,7 @@ import androidx.lifecycle.LifecycleOwner
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.segmentation.SegmentationMask
 import com.opengl.camera.CameraActivity
+import com.opengl.camera.CameraSegmenter
 import com.opengl.playground.R
 import com.opengl.playground.airhockey.AirHockeyRenderer
 import com.opengl.playground.objects.VertexArray

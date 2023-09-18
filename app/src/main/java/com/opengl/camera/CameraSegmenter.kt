@@ -1,4 +1,4 @@
-package com.opengl.camera.programs
+package com.opengl.camera
 
 import android.content.Context
 import com.google.android.gms.tasks.Task
