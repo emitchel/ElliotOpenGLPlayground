@@ -13,7 +13,7 @@ void main() {
     float maskValue = texture2D(u_MaskTexture, v_TextureCoordinates).r;
 
     if (maskValue > 0.5) {
-        gl_FragColor = vec4(1.0); // Fully opaque white
+        gl_FragColor = vec4(1.0, 1.0, 1.0, 0.0); // Fully transparent white
     } else {
         gl_FragColor = texture2D(u_TextureUnit, v_TextureCoordinates); // Sample the original texture
     }

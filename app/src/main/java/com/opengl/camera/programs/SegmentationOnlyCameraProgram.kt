@@ -208,6 +208,13 @@ class SegmentationOnlyCameraProgram(
             GLES20.glUseProgram(program)
 
             surfaceTexture?.updateTexImage()
+            GLES20.glDisable(GLES20.GL_DEPTH_TEST);
+
+
+            // 1. Enable blending
+            GLES20.glEnable(GLES20.GL_BLEND);
+            // 2. Set the blend function
+            GLES20.glBlendFunc(GLES20.GL_SRC_ALPHA, GLES20.GL_ONE_MINUS_SRC_ALPHA);
             // Bind the camera texture
             // Pass the matrix into the shader program.
             GLES20.glUniformMatrix4fv(getuMatrixLocation(), 1, false, modelMatrix, 0)
@@ -228,6 +235,7 @@ class SegmentationOnlyCameraProgram(
                         byteBufferHeight
                     )
             }
+
 
 // Set the active texture unit to texture unit 1 for the segmentation mask.
             GLES20.glActiveTexture(GLES20.GL_TEXTURE1)
@@ -265,6 +273,8 @@ class SegmentationOnlyCameraProgram(
 
             // lastly, draw the vertices...
             GLES20.glDrawArrays(GLES20.GL_TRIANGLE_FAN, 0, 6)
+
+            GLES20.glDisable(GLES20.GL_BLEND);
         }
     }
 
