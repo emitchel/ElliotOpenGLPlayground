@@ -17,7 +17,8 @@ class CameraSegmenter(context: Context) {
         optionsBuilder.setDetectorMode(
             SelfieSegmenterOptions.STREAM_MODE
         )
-            // .enableRawSizeMask()
+            // This speeds up the rendering process since it's a much smaller 256x256 output
+            .enableRawSizeMask()
         val options = optionsBuilder.build()
         segmenter = Segmentation.getClient(options)
     }

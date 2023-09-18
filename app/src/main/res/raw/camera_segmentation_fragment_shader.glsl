@@ -5,16 +5,20 @@ precision mediump float;
 varying vec2 v_TextureCoordinates;
 
 uniform samplerExternalOES u_TextureUnit;
-uniform sampler2D u_MaskTexture;  // The byte buffer texture
+uniform sampler2D u_MaskTexture;  // The RGBA buffer texture
 
 void main() {
-    // Sample from the segmentation mask
-    // Sample the luminance value from the mask
-    float maskValue = texture2D(u_MaskTexture, v_TextureCoordinates).r;
+    // Sample from the camera feed texture
+    vec4 cameraColor = texture2D(u_TextureUnit, v_TextureCoordinates);
 
-    if (maskValue > 0.5) {
-        gl_FragColor = vec4(1.0, 1.0, 1.0, 0.0); // Fully transparent white
-    } else {
-        gl_FragColor = texture2D(u_TextureUnit, v_TextureCoordinates); // Sample the original texture
-    }
+    // Sample the mask color
+    vec4 maskColor = texture2D(u_MaskTexture, v_TextureCoordinates);
+
+    // Use the alpha channel of the mask to blend
+    float blendFactor = maskColor.a;
+
+    // Simple alpha blending (assuming mask color RGB is the color you want to blend with the camera feed)
+    vec4 blendedColor = mix(cameraColor, maskColor, blendFactor);
+
+    gl_FragColor = blendedColor;
 }

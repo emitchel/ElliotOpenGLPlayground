@@ -1,6 +1,7 @@
 package com.opengl.camera.programs
 
 import android.content.Context
+import android.graphics.Color
 import android.graphics.SurfaceTexture
 import android.opengl.GLES11Ext
 import android.opengl.GLES20
@@ -8,6 +9,7 @@ import android.opengl.GLSurfaceView
 import android.opengl.Matrix
 import android.util.Size
 import android.view.Surface
+import androidx.annotation.ColorInt
 import androidx.camera.core.AspectRatio
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ExperimentalGetImage
@@ -78,24 +80,29 @@ class SegmentationOnlyCameraProgram(
 
     fun segmentMaskCallback(it: SegmentationMask) {
         coroutineScope.launch(Dispatchers.IO) {
-            val mask = it.getBuffer()
             val maskWidth = it.getWidth()
             val maskHeight = it.getHeight()
 
-            val byteBufferSize = maskWidth * maskHeight // one byte per pixel for LUMINANCE
-            val resultBuffer = ByteBuffer.allocateDirect(byteBufferSize)
+            // The size of the buffer remains the same
 
-            for (y in 0 until maskHeight) {
-                for (x in 0 until maskWidth) {
-                    val foregroundConfidence = mask.getFloat()
-                    val byteValue = (foregroundConfidence * 255.0f).toInt().toByte()
-                    resultBuffer.put(byteValue)
+            val buffer = ByteBuffer.allocateDirect(maskWidth * maskHeight * 4) // 4 bytes for RGBA
+
+            for (i in 0 until maskWidth * maskHeight) {
+                val backgroundLikelihood = 1 - it.buffer.float
+                @ColorInt val color: Int
+
+                if (backgroundLikelihood > 0.9) {
+                    color = Color.argb(128, 255, 0, 255)
+                } else if (backgroundLikelihood > 0.2) {
+                    val alpha = (182.9 * backgroundLikelihood - 36.6 + 0.5).toInt()
+                    color = Color.argb(alpha, 255, 0, 255)
+                } else {
+                    color = Color.TRANSPARENT
                 }
+                buffer.putInt(color)
             }
-
-            resultBuffer.rewind()
-            updateMaskData(resultBuffer, maskWidth, maskHeight)
-            // updateMaskData(mask, maskWidth, maskHeight)
+            buffer.flip()
+            updateMaskData(buffer, maskWidth, maskHeight)
         }
     }
 
@@ -179,11 +186,11 @@ class SegmentationOnlyCameraProgram(
     private val lock = Any()
     fun updateMaskData(byteBuffer: ByteBuffer, width: Int, height: Int) {
 
-        synchronized(lock) {
+        // synchronized(lock) {
             this.byteBuffer = byteBuffer
             this.byteBufferHeight = height
             this.byteBufferWidth = width
-        }
+        // }
     }
 
     override fun onSurfaceChanged(width: Int, height: Int) {
@@ -198,89 +205,122 @@ class SegmentationOnlyCameraProgram(
     private val modelMatrix = FloatArray(16)
 
     override fun onDrawFrame() {
-        if (byteBuffer == null) return
-        synchronized(lock) {
 
-            // log("pulled latest mask, size: ${masks.size}")
-            // set positioning... i think
-            positionFrameCorrectly()
-            // setup the shaders to run
-            GLES20.glUseProgram(program)
+        // log("pulled latest mask, size: ${masks.size}")
+        // set positioning... i think
+        positionCameraCorrectly()
+        // setup the shaders to run
+        GLES20.glUseProgram(program)
 
-            surfaceTexture?.updateTexImage()
-            GLES20.glDisable(GLES20.GL_DEPTH_TEST);
+        surfaceTexture?.updateTexImage()
+        GLES20.glDisable(GLES20.GL_DEPTH_TEST);
+
+        // 1. Enable blending
+        GLES20.glEnable(GLES20.GL_BLEND);
+        // 2. Set the blend function
+        GLES20.glBlendFunc(GLES20.GL_SRC_ALPHA, GLES20.GL_ONE_MINUS_SRC_ALPHA);
+        // Bind the camera texture
+        // Pass the matrix into the shader program.
+        GLES20.glUniformMatrix4fv(getuMatrixLocation(), 1, false, modelMatrix, 0)
+        // Set the active texture unit to texture unit 0 for camera feed.
+        GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
+        GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, cameraTextureId);
+        GLES20.glUniform1i(
+            getuTextureUnitLocation(),
+            0
+        );
+
+        // bind the triangle + texture data
+        vertexArray.setVertexAttribPointer(
+            0,
+            getPositionAttributeLocation(),
+            POSITION_COMPONENT_COUNT,
+            STRIDE
+        )
+        vertexArray.setVertexAttribPointer(
+            POSITION_COMPONENT_COUNT,
+            getTextureCoordinatesAttributeLocation(),
+            TEXTURE_COORDINATES_COMPONENT_COUNT,
+            STRIDE
+        )
+
+        //Draw right away for the camera positioning
+        GLES20.glDrawArrays(GLES20.GL_TRIANGLE_FAN, 0, 6)
 
 
-            // 1. Enable blending
-            GLES20.glEnable(GLES20.GL_BLEND);
-            // 2. Set the blend function
-            GLES20.glBlendFunc(GLES20.GL_SRC_ALPHA, GLES20.GL_ONE_MINUS_SRC_ALPHA);
-            // Bind the camera texture
-            // Pass the matrix into the shader program.
-            GLES20.glUniformMatrix4fv(getuMatrixLocation(), 1, false, modelMatrix, 0)
-            // Set the active texture unit to texture unit 0 for camera feed.
-            GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
-            GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, cameraTextureId);
-            GLES20.glUniform1i(
-                getuTextureUnitLocation(),
-                0
-            );
 
+        // Don't draw the segmentation mask if it hasn't been updated yet.
+        if (byteBuffer == null) {
+            return
+        }
+        // synchronized(lock) {
+        if (maskTextureId == -1) {
+            maskTextureId =
+                TextureHelper.createTextureFromColors(
+                    byteBuffer!!,
+                    byteBufferWidth,
+                    byteBufferHeight
+                )
+        }
 
-            if (maskTextureId == -1) {
-                maskTextureId =
-                    TextureHelper.createTextureFromByteBuffer2(
-                        byteBuffer!!,
-                        byteBufferWidth,
-                        byteBufferHeight
-                    )
-            }
-
+        // TODO update the matrix before drawing the mask
+//             // ... previous code ...
+//
+// // After drawing the first texture
+//             GLES20.glDrawArrays(GLES20.GL_TRIANGLE_FAN, 0, 6)
+//
+// // Update the modelMatrix for the second texture
+// // ... your logic to update modelMatrix ...
+//
+// // Pass the updated matrix into the shader program.
+//             GLES20.glUniformMatrix4fv(getuMatrixLocation(), 1, false, modelMatrix, 0)
+//
+// // Bind your second texture and set it up
+// // ... your code to bind and set up second texture ...
+//
+// // Draw the second texture
+//             GLES20.glDrawArrays(GLES20.GL_TRIANGLE_FAN, 0, 6)
+//
+//             GLES20.glDisable(GLES20.GL_BLEND);
 
 // Set the active texture unit to texture unit 1 for the segmentation mask.
-            GLES20.glActiveTexture(GLES20.GL_TEXTURE1)
-            GLES20.glBindTexture(
-                GLES20.GL_TEXTURE_2D,
-                maskTextureId
-            )
+        byteBuffer!!.flip()
+        GLES20.glActiveTexture(GLES20.GL_TEXTURE1)
+        GLES20.glBindTexture(
+            GLES20.GL_TEXTURE_2D,
+            maskTextureId
+        )
 
-            GLES20.glTexSubImage2D(
-                GLES20.GL_TEXTURE_2D,
-                0,
-                0,
-                0,
-                byteBufferWidth,
-                byteBufferHeight,
-                GLES20.GL_LUMINANCE,
-                GLES20.GL_UNSIGNED_BYTE,
-                byteBuffer!!
-            )
-            GLES20.glUniform1i(getuMaskTextureUnitLocation(), 1)
+        GLES20.glTexSubImage2D(
+            GLES20.GL_TEXTURE_2D, 0, 0, 0,
+            byteBufferWidth, byteBufferHeight, GLES20.GL_RGBA,
+            GLES20.GL_UNSIGNED_BYTE, byteBuffer!!
+        )
+        // }
+        GLES20.glUniform1i(getuMaskTextureUnitLocation(), 1)
 
-            // bind the triangle + texture data
-            vertexArray.setVertexAttribPointer(
-                0,
-                getPositionAttributeLocation(),
-                POSITION_COMPONENT_COUNT,
-                STRIDE
-            )
-            vertexArray.setVertexAttribPointer(
-                POSITION_COMPONENT_COUNT,
-                getTextureCoordinatesAttributeLocation(),
-                TEXTURE_COORDINATES_COMPONENT_COUNT,
-                STRIDE
-            )
+        // bind the triangle + texture data
+        vertexArray.setVertexAttribPointer(
+            0,
+            getPositionAttributeLocation(),
+            POSITION_COMPONENT_COUNT,
+            STRIDE
+        )
+        vertexArray.setVertexAttribPointer(
+            POSITION_COMPONENT_COUNT,
+            getTextureCoordinatesAttributeLocation(),
+            TEXTURE_COORDINATES_COMPONENT_COUNT,
+            STRIDE
+        )
 
-            // lastly, draw the vertices...
-            GLES20.glDrawArrays(GLES20.GL_TRIANGLE_FAN, 0, 6)
+        // lastly, draw the vertices...
+        GLES20.glDrawArrays(GLES20.GL_TRIANGLE_FAN, 0, 6)
 
-            GLES20.glDisable(GLES20.GL_BLEND);
-        }
+        GLES20.glDisable(GLES20.GL_BLEND);
     }
 
-    private fun positionFrameCorrectly() {
+    private fun positionCameraCorrectly() {
         Matrix.setIdentityM(modelMatrix, 0)
-        // return
         // As far as I can tell, the camera preview always comes in sideways.
         // Every app who manages their own surface texture has to rotate it and set the scale.
 

@@ -22,7 +22,6 @@ import android.opengl.GLES20.glDeleteTextures
 import android.opengl.GLES20.glGenTextures
 import android.opengl.GLES20.glGenerateMipmap
 import android.opengl.GLES20.glTexParameteri
-import android.opengl.GLES30
 import android.opengl.GLUtils.texImage2D
 import java.nio.ByteBuffer
 
@@ -216,6 +215,28 @@ object TextureHelper {
         return textureIds[0]
     }
 
+    fun createTextureFromColors(buffer: ByteBuffer, width: Int, height: Int): Int {
+        buffer.clear()
+
+        val textureIds = IntArray(1)
+        GLES20.glGenTextures(1, textureIds, 0)
+        val textureId = textureIds[0]
+
+        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textureId)
+
+        GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_LINEAR)
+        GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_LINEAR)
+
+        GLES20.glTexImage2D(
+            GLES20.GL_TEXTURE_2D, 0, GLES20.GL_RGBA,
+            width, height, 0, GLES20.GL_RGBA,
+            GLES20.GL_UNSIGNED_BYTE, buffer
+        )
+        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, 0)
+
+        return textureId
+    }
+
     fun createTextureFromByteBuffer2(buffer: ByteBuffer, width: Int, height: Int): Int {
         val textureArray = IntArray(1)
         GLES20.glGenTextures(1, textureArray, 0)
@@ -223,10 +244,15 @@ object TextureHelper {
 
         GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textureId)
 
-        GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_S, GLES20.GL_CLAMP_TO_EDGE)
+        GLES20.glTexParameteri(
+            GLES20.GL_TEXTURE_2D,
+            GLES20.GL_TEXTURE_WRAP_S,
+            GLES20.GL_CLAMP_TO_EDGE
+        )
         GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_T, GLES20.GL_CLAMP_TO_EDGE)
         GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_LINEAR)
         GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_LINEAR)
+
 
         GLES20.glTexImage2D(
             GLES20.GL_TEXTURE_2D,
