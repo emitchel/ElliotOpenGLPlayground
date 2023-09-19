@@ -26,7 +26,13 @@
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/duetCamera"
-            android:text="Camera"
+            android:text="Static Image + Camera Segmentation"
+            android:layout_width="match_parent"
+            android:layout_height="86dp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/streamedVideoCamera"
+            android:text="Streamed Video + Camera Segmentation"
             android:layout_width="match_parent"
             android:layout_height="86dp" />
 

@@ -12,7 +12,6 @@ import android.view.Surface
 import androidx.annotation.ColorInt
 import androidx.camera.core.AspectRatio
 import androidx.camera.core.CameraSelector
-import androidx.camera.core.ExperimentalGetImage
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageProxy
 import androidx.camera.core.Preview
@@ -21,8 +20,8 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.segmentation.SegmentationMask
-import com.opengl.camera.CameraActivity
 import com.opengl.camera.CameraSegmenter
+import com.opengl.camera.CanvasRendererLayer
 import com.opengl.playground.R
 import com.opengl.playground.airhockey.AirHockeyRenderer
 import com.opengl.playground.objects.VertexArray
@@ -35,7 +34,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
-@ExperimentalGetImage
 class SegmentationOnlyCameraProgram(
     val context: Context,
     private val coroutineScope: CoroutineScope,
@@ -47,7 +45,7 @@ class SegmentationOnlyCameraProgram(
         R.raw.camera_segmentation_vertex_shader,
         R.raw.camera_segmentation_fragment_shader
     ),
-    CameraActivity.CanvasRendererLayer {
+    CanvasRendererLayer {
 
     private var cameraTextureId = 0
     private var maskTextureId = -1
@@ -59,7 +57,7 @@ class SegmentationOnlyCameraProgram(
     private var byteBufferWidth: Int = 0
     private var byteBufferHeight: Int = 0
 
-    var showSegmentation = false
+    var showSegmentation = true
 
     override fun onSurfaceCreated() {
         cameraTextureId = TextureHelper.createExternalOesTexture()

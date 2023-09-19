@@ -7,11 +7,11 @@ import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
 
 class RecordedCanvasRenderer(
-    private val getRenderersOnGlThread: () -> List<CameraActivity.CanvasRendererLayer>
+    private val getRenderersOnGlThread: () -> List<CanvasRendererLayer>
 ) :
     Renderer {
 
-    private var renderers: List<CameraActivity.CanvasRendererLayer> = emptyList()
+    private var renderers: List<CanvasRendererLayer> = emptyList()
 
     override fun onSurfaceCreated(p0: GL10?, p1: EGLConfig?) {
         GLES20.glClearColor(0.0f, 0.0f, 0.0f, 0.0f)

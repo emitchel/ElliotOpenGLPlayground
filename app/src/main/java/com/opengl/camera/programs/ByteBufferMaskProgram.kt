@@ -3,8 +3,7 @@ package com.opengl.camera.programs
 import android.content.Context
 import android.opengl.GLES20
 import android.opengl.Matrix
-import androidx.camera.core.ExperimentalGetImage
-import com.opengl.camera.CameraActivity
+import com.opengl.camera.CanvasRendererLayer
 import com.opengl.playground.R
 import com.opengl.playground.airhockey.AirHockeyRenderer
 import com.opengl.playground.objects.VertexArray
@@ -12,11 +11,10 @@ import com.opengl.playground.programs.TextureShaderProgram
 import com.opengl.playground.util.TextureHelper
 import java.nio.ByteBuffer
 
-@ExperimentalGetImage
 class ByteBufferMaskProgram(
     val context: Context
 ) : TextureShaderProgram(context, R.raw.bytebuffer_vertex_shader, R.raw.bytebuffer_fragment_shader),
-    CameraActivity.CanvasRendererLayer {
+    CanvasRendererLayer {
 
     private var textureId = -1
     private var width: Int = 0

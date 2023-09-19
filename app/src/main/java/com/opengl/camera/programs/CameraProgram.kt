@@ -1,5 +1,6 @@
 package com.opengl.camera.programs
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.SurfaceTexture
 import android.opengl.GLES11Ext
@@ -10,7 +11,6 @@ import android.util.Size
 import android.view.Surface
 import androidx.camera.core.AspectRatio
 import androidx.camera.core.CameraSelector
-import androidx.camera.core.ExperimentalGetImage
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageProxy
 import androidx.camera.core.Preview
@@ -19,8 +19,8 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.segmentation.SegmentationMask
-import com.opengl.camera.CameraActivity
 import com.opengl.camera.CameraSegmenter
+import com.opengl.camera.CanvasRendererLayer
 import com.opengl.playground.R
 import com.opengl.playground.airhockey.AirHockeyRenderer
 import com.opengl.playground.objects.VertexArray
@@ -28,7 +28,6 @@ import com.opengl.playground.programs.TextureShaderProgram
 import com.opengl.playground.util.TextureHelper
 import com.opengl.playground.util.log
 
-@ExperimentalGetImage
 class CameraProgram(
     val context: Context,
     private val lifecycleOwner: LifecycleOwner,
@@ -36,7 +35,7 @@ class CameraProgram(
     val segmentMaskCallback: (SegmentationMask) -> Unit
 ) :
     TextureShaderProgram(context, R.raw.camera_vertex_shader, R.raw.camera_fragment_shader),
-    CameraActivity.CanvasRendererLayer {
+    CanvasRendererLayer {
 
     private var textureId = 0
     private var surfaceTexture: SurfaceTexture? = null
@@ -52,6 +51,7 @@ class CameraProgram(
         }
     }
 
+    @SuppressLint("UnsafeOptInUsageError")
     private fun startCamera() {
         val cameraProviderFuture = ProcessCameraProvider.getInstance(context)
 
@@ -140,8 +140,6 @@ class CameraProgram(
 
     // called onDrawFrame from GLSurfaceView.Renderer
     override fun onDrawFrame() {
-        return
-        // set positioning... i think
         positionFrameCorrectly()
         // setup the shaders to run
         GLES20.glUseProgram(program)

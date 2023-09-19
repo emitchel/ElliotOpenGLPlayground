@@ -5,20 +5,18 @@ import android.graphics.BitmapFactory
 import android.opengl.GLES20
 import android.opengl.GLES20.GL_TEXTURE_2D
 import android.opengl.Matrix
-import androidx.camera.core.ExperimentalGetImage
-import com.opengl.camera.CameraActivity
+import com.opengl.camera.CanvasRendererLayer
 import com.opengl.playground.R
 import com.opengl.playground.airhockey.AirHockeyRenderer
 import com.opengl.playground.objects.VertexArray
 import com.opengl.playground.programs.TextureShaderProgram
 import com.opengl.playground.util.TextureHelper
 
-@ExperimentalGetImage
 class FullScreenStaticImageProgram(
     val context: Context,
     private val drawableInt: Int
 ) : TextureShaderProgram(context, R.raw.texture_vertex_shader, R.raw.texture_fragment_shader),
-    CameraActivity.CanvasRendererLayer {
+    CanvasRendererLayer {
 
     private var textureId = 0
     private var width: Int = 0

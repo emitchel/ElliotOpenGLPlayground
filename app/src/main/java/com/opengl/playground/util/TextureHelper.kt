@@ -284,13 +284,30 @@ object TextureHelper {
         GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, texture[0])
 
         // Set texture parameters
-        GLES20.glTexParameterf(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_MIN_FILTER, GLES20.GL_LINEAR.toFloat())
-        GLES20.glTexParameterf(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_MAG_FILTER, GLES20.GL_LINEAR.toFloat())
-        GLES20.glTexParameteri(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_WRAP_S, GLES20.GL_CLAMP_TO_EDGE)
-        GLES20.glTexParameteri(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_WRAP_T, GLES20.GL_CLAMP_TO_EDGE)
+        GLES20.glTexParameterf(
+            GLES11Ext.GL_TEXTURE_EXTERNAL_OES,
+            GL_TEXTURE_MIN_FILTER,
+            GLES20.GL_LINEAR.toFloat()
+        )
+        GLES20.glTexParameterf(
+            GLES11Ext.GL_TEXTURE_EXTERNAL_OES,
+            GL_TEXTURE_MAG_FILTER,
+            GLES20.GL_LINEAR.toFloat()
+        )
+        GLES20.glTexParameteri(
+            GLES11Ext.GL_TEXTURE_EXTERNAL_OES,
+            GLES20.GL_TEXTURE_WRAP_S,
+            GLES20.GL_CLAMP_TO_EDGE
+        )
+        GLES20.glTexParameteri(
+            GLES11Ext.GL_TEXTURE_EXTERNAL_OES,
+            GLES20.GL_TEXTURE_WRAP_T,
+            GLES20.GL_CLAMP_TO_EDGE
+        )
 
         log("created texture id ${texture[0]}")
         glBindTexture(GL_TEXTURE_2D, 0)
         return texture[0]
     }
+
 }
