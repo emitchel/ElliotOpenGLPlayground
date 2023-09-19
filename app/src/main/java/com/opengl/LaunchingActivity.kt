@@ -3,6 +3,7 @@ package com.opengl
 import android.content.Intent
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
+import com.opengl.camera.BlurredCameraActivity
 import com.opengl.camera.StaticImageCameraSegmentationActivity
 import com.opengl.camera.StreamedVideoCameraActivity
 import com.opengl.playground.airhockey.AirHockeyActivity
@@ -35,6 +36,10 @@ class LaunchingActivity : AppCompatActivity() {
 
         binding.streamedVideoCamera.setOnClickListener {
             startActivity(Intent(this, StreamedVideoCameraActivity::class.java))
+        }
+
+        binding.blurredCamera.setOnClickListener {
+            startActivity(Intent(this, BlurredCameraActivity::class.java))
         }
     }
 }

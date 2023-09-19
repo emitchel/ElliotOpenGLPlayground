@@ -36,6 +36,12 @@
             android:layout_width="match_parent"
             android:layout_height="86dp" />
 
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/blurredCamera"
+            android:text="Blurred camera"
+            android:layout_width="match_parent"
+            android:layout_height="86dp" />
+
 
     </androidx.appcompat.widget.LinearLayoutCompat>
 

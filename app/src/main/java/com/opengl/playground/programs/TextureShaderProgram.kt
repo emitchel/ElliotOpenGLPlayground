@@ -27,6 +27,8 @@ open class TextureShaderProgram(
     fun getuMaskTextureUnitLocation(): Int =
         GLES20.glGetUniformLocation(program, U_MASK_TEXTURE_UNIT)
 
+    fun getResolutionLocation(): Int = GLES20.glGetUniformLocation(program, RESOLUTION)
+
     // Attribute locations
     fun getPositionAttributeLocation(): Int = GLES20.glGetAttribLocation(program, A_POSITION)
     fun getTextureCoordinatesAttributeLocation(): Int =
